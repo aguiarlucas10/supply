@@ -1443,26 +1443,46 @@ async function renderCsvPreview() {
     (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} já existem no banco</span>` : '') +
     (internalDupes.size ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${internalDupes.size} SKUs repetidos no arquivo (será importado só o primeiro)</span>` : '') +
     (missingCat.length ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${missingCat.length} sem categoria</span>` : '');
+  // Build per-row status: track first occurrence for internal dupe detection
+  const firstSeen = new Set();
+  const rowStatuses = csvParsedRows.map(r => {
+    const inDB      = existingSkus.includes(r.sku);
+    const isIntDupe = internalDupes.has(r.sku);
+    const isFirst   = !firstSeen.has(r.sku);
+    if (r.sku) firstSeen.add(r.sku);
+    let status;
+    if (inDB)                          status = 'db_dupe';
+    else if (isIntDupe && isFirst)     status = 'int_first';
+    else if (isIntDupe && !isFirst)    status = 'int_skip';
+    else if (!r.category)              status = 'no_cat';
+    else                               status = 'ok';
+    return { r, status };
+  });
+
+  // Sort: internal dupes first (grouped), then rest
+  const order = { int_first:0, int_skip:1, db_dupe:2, no_cat:3, ok:4 };
+  const sorted = [...rowStatuses].sort((a,b) => order[a.status] - order[b.status]);
+
+  const statusHTML = {
+    ok:        `<span style="color:var(--success)">✓ Importar</span>`,
+    int_first: `<span style="color:var(--warning)">⚠ Repetido — importar este</span>`,
+    int_skip:  `<span style="color:var(--muted)">✕ Repetido — ignorar</span>`,
+    db_dupe:   `<span style="color:var(--danger)">✕ Já existe no banco</span>`,
+    no_cat:    `<span style="color:var(--warning)">⚠ Sem categoria</span>`,
+  };
+  const rowOpacity = { ok:'', int_first:'', int_skip:'opacity:.35;', db_dupe:'opacity:.35;', no_cat:'' };
+
   document.getElementById('csv-preview').innerHTML =
     `<table style="width:100%;border-collapse:collapse;">
-      <thead><tr>${['SKU','Nome','Categoria','Sub Cat.','Qtd','Preço','Status'].map(h=>`<th style="padding:5px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
-      <tbody>${csvParsedRows.map(r=>{
-        const isDupe = r.sku && existingSkus.includes(r.sku);
-        const noCategory = !r.category;
-        let statusLabel, rowStyle;
-        if (isDupe)        { statusLabel = '<span style="color:var(--danger)">Duplicado</span>';        rowStyle = 'opacity:.4;'; }
-        else if (noCategory){ statusLabel = '<span style="color:var(--warning)">Sem categoria</span>'; rowStyle = ''; }
-        else               { statusLabel = '<span style="color:var(--success)">OK</span>';              rowStyle = ''; }
-        return `<tr style="${rowStyle}border-bottom:1px solid #1a1a1a;">
+      <thead><tr>${['SKU','Nome','Categoria','Sub Cat.','Status'].map(h=>`<th style="padding:5px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+      <tbody>${sorted.map(({r,status})=>`
+        <tr style="${rowOpacity[status]}border-bottom:1px solid #1a1a1a;">
           <td style="padding:5px 8px;font-size:11px;font-weight:600;">${r.sku||'—'}</td>
-          <td style="padding:5px 8px;font-size:11px;">${r.name||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;color:var(--muted);">${r.name||'—'}</td>
           <td style="padding:5px 8px;font-size:11px;">${r.category||'<span style="color:var(--warning)">—</span>'}</td>
           <td style="padding:5px 8px;font-size:11px;color:var(--muted);">${r.sub_category||'—'}</td>
-          <td style="padding:5px 8px;font-size:11px;">${r.quantity||'—'}</td>
-          <td style="padding:5px 8px;font-size:11px;">${r.reference_price||'—'}</td>
-          <td style="padding:5px 8px;font-size:11px;">${statusLabel}</td>
-        </tr>`;
-      }).join('')}</tbody>
+          <td style="padding:5px 8px;font-size:11px;">${statusHTML[status]}</td>
+        </tr>`).join('')}</tbody>
     </table>`;
   document.getElementById('csv-preview-wrap').style.display = 'block';
   document.getElementById('csv-import-btn').style.display = valid.length ? 'inline-flex' : 'none';
