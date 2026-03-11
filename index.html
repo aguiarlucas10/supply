@@ -215,10 +215,6 @@ tr:hover td{background:var(--surface2);}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
         Processes
       </a>
-      <a onclick="showView('quotes')" id="nav-quotes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        Quotes
-      </a>
       <a onclick="showView('products')" id="nav-products">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
         Products
@@ -266,6 +262,12 @@ tr:hover td{background:var(--surface2);}
       <!-- PROCESSES -->
       <div id="view-processes" class="view">
         <div id="processes-list"></div>
+        <div id="process-detail" style="display:none;">
+          <div style="margin-bottom:16px;">
+            <button class="btn btn-ghost btn-sm" onclick="backToProcesses()">← Processos</button>
+          </div>
+          <div id="quotes-content"></div>
+        </div>
       </div>
 
       <!-- PRODUCTS -->
@@ -297,10 +299,8 @@ tr:hover td{background:var(--surface2);}
         </div>
       </div>
 
-      <!-- QUOTES -->
-      <div id="view-quotes" class="view">
-        <div id="quotes-content"></div>
-      </div>
+      <!-- QUOTES (now embedded in processes) -->
+      <div id="view-quotes" class="view" style="display:none!important;"></div>
 
       <!-- STEPS -->
       <div id="view-steps" class="view">
@@ -442,6 +442,23 @@ tr:hover td{background:var(--surface2);}
 </div>
 
 <!-- Add / Edit Product -->
+<!-- Add Product from Catalog -->
+<div class="modal-overlay" id="modal-add-to-process">
+  <div class="modal modal-wide">
+    <div class="modal-head"><h2>Adicionar Produto ao Processo</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-to-process')">✕</button></div>
+    <div class="modal-body">
+      <input id="catalog-search" class="search-input" placeholder="Buscar por SKU ou nome…" oninput="filterCatalog()" style="width:100%;margin-bottom:14px;"/>
+      <div id="catalog-list" style="max-height:320px;overflow-y:auto;"></div>
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;">
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-to-process');openAddProductModal(activeProcessId)">+ Cadastrar novo produto</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-to-process')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-product">
   <div class="modal modal-wide">
     <div class="modal-head"><h2 id="modal-product-title">Add Product</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-product')">✕</button></div>
@@ -603,7 +620,7 @@ let lang = localStorage.getItem('sg_lang') || 'pt';
 
 const T = {
   pt: {
-    nav_dashboard:'Dashboard', nav_processes:'Processos', nav_quotes:'Cotações',
+    nav_dashboard:'Dashboard', nav_processes:'Processos',
     nav_products:'Produtos', nav_suppliers:'Fornecedores', nav_steps:'Guia',
     btn_new_process:'+ Novo Processo', btn_add_supplier:'+ Fornecedor',
     btn_add_product:'+ Produto', btn_import_csv:'↑ Importar CSV',
@@ -669,7 +686,7 @@ const T = {
     s8_body:'Ap\u00f3s a confirma\u00e7\u00e3o de todos os fornecedores, organize os pagamentos de entrada de cada pedido. Marque o processo como <strong>Finalizado</strong> quando os pagamentos forem organizados.',
   },
   en: {
-    nav_dashboard:'Dashboard', nav_processes:'Processes', nav_quotes:'Quotes',
+    nav_dashboard:'Dashboard', nav_processes:'Processes',
     nav_products:'Products', nav_suppliers:'Suppliers', nav_steps:'Steps',
     btn_new_process:'+ New Process', btn_add_supplier:'+ Add Supplier',
     btn_add_product:'+ Add Product', btn_import_csv:'\u2191 Import CSV',
@@ -755,8 +772,8 @@ function applyLang() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) logoutBtn.textContent = l.btn_logout;
   // Nav items (last text node)
-  const navIds = ['dashboard','processes','quotes','products','suppliers','steps'];
-  const navKeys = ['nav_dashboard','nav_processes','nav_quotes','nav_products','nav_suppliers','nav_steps'];
+  const navIds = ['dashboard','processes','products','suppliers','steps'];
+  const navKeys = ['nav_dashboard','nav_processes','nav_products','nav_suppliers','nav_steps'];
   navIds.forEach((id, i) => {
     const el = document.getElementById('nav-' + id);
     if (!el) return;
@@ -987,6 +1004,8 @@ async function loadSuppliers() {
 }
 
 async function loadProcesses() {
+  document.getElementById('processes-list').style.display = 'block';
+  document.getElementById('process-detail').style.display = 'none';
   const { data } = await db.from('processes').select('*').order('created_at',{ascending:false});
   const container = document.getElementById('processes-list');
   if (!data || !data.length) {
@@ -1153,6 +1172,65 @@ async function saveProcess() {
 }
 
 // ── Product CRUD ──────────────────────
+async function openCatalogPicker(processId) {
+  activeProcessId = processId;
+  // Load catalog products (not already in this process)
+  const { data: all } = await db.from('products').select('*').order('sku');
+  const { data: inProc } = await db.from('products').select('id').eq('process_id', processId);
+  const inProcIds = new Set((inProc||[]).map(p=>p.id));
+  window._catalogAll = (all||[]).filter(p=>!inProcIds.has(p.id));
+  filterCatalog();
+  openModal('modal-add-to-process');
+}
+
+function filterCatalog() {
+  const q = (document.getElementById('catalog-search')?.value||'').toLowerCase();
+  const list = document.getElementById('catalog-list');
+  const items = (window._catalogAll||[]).filter(p=>
+    (p.sku||'').toLowerCase().includes(q) || (p.name||'').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = '<div class="empty" style="padding:20px;text-align:center;">Nenhum produto encontrado no catálogo.</div>';
+    return;
+  }
+  list.innerHTML = items.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div>
+        <span style="font-size:12px;font-weight:600;color:#fff;">${p.sku||'—'}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:10px;">${p.name||''}</span>
+        ${p.category?`<span class="tag" style="margin-left:8px;font-size:9px;">${p.category}</span>`:''}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addCatalogProductToProcess('${p.id}')">+ Adicionar</button>
+    </div>`).join('');
+}
+
+async function addCatalogProductToProcess(productId) {
+  // Duplicate the product record linked to this process
+  const { data: orig } = await db.from('products').select('*').eq('id', productId).single();
+  if (!orig) return;
+  const { name, sku, category, sub_category, description, reference_price, image_url, tool_type, notes } = orig;
+  const { error } = await db.from('products').insert({
+    process_id: activeProcessId,
+    sku, name, category, sub_category, description, reference_price, image_url, tool_type, notes,
+    quantity: 0, has_sample: false, discontinued: false
+  });
+  if (error) { toast('Erro: '+error.message,'error'); return; }
+  // Create pending quotes for existing suppliers in this process
+  const { data: psuppliers } = await db.from('process_suppliers').select('supplier_id').eq('process_id', activeProcessId);
+  if (psuppliers?.length) {
+    const { data: newProd } = await db.from('products').select('id').eq('process_id', activeProcessId).eq('sku', sku).order('created_at',{ascending:false}).limit(1).single();
+    if (newProd) {
+      await db.from('quotes').upsert(
+        psuppliers.map(ps=>({ process_id:activeProcessId, supplier_id:ps.supplier_id, product_id:newProd.id, status:'pending' })),
+        { onConflict:'process_id,supplier_id,product_id', ignoreDuplicates:true }
+      );
+    }
+  }
+  closeModal('modal-add-to-process');
+  openProcess(activeProcessId);
+  toast('Produto adicionado ao processo!','success');
+}
+
 function openAddProductModal(processId) {
   activeProcessId = processId || null;
   document.getElementById('modal-product-title').textContent = 'ADD PRODUCT';
@@ -1370,7 +1448,9 @@ async function saveQuote() {
 // ── Process Detail ────────────────────
 async function openProcess(id) {
   activeProcessId = id;
-  showView('quotes');
+  showView('processes');
+  document.getElementById('processes-list').style.display = 'none';
+  document.getElementById('process-detail').style.display = 'block';
   const [{ data: process }, { data: products }, { data: psuppliers }, { data: quotes }] = await Promise.all([
     db.from('processes').select('*').eq('id',id).single(),
     db.from('products').select('*').eq('process_id',id).order('created_at'),
@@ -1385,7 +1465,7 @@ async function openProcess(id) {
   document.getElementById('quotes-content').innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
       <span class="badge badge-${process.status}">${process.status}</span>
-      <button class="btn btn-primary btn-sm" onclick="openAddProductModal('${id}')">${t('proc_add_product')}</button>
+      <button class="btn btn-primary btn-sm" onclick="openCatalogPicker('${id}')">${t('proc_add_product')}</button>
       <button class="btn btn-ghost btn-sm" onclick="openCsvModal('${id}')">${t('proc_import_csv')}</button>
       <button class="btn btn-ghost btn-sm" onclick="openInviteSupplierModal('${id}')">${t('proc_invite_supplier')}</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditProcess('${id}')">${t('proc_edit')}</button>
@@ -1449,6 +1529,13 @@ function buildQuoteMatrix(products, suppliers, quoteMap, allQuotes) {
     <thead><tr><th>Product</th>${headers}</tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
+}
+
+function backToProcesses() {
+  document.getElementById('processes-list').style.display = 'block';
+  document.getElementById('process-detail').style.display = 'none';
+  document.getElementById('topbar-title').textContent = (T[lang]?.nav_processes || 'Processos').toUpperCase();
+  document.getElementById('topbar-actions').innerHTML = '<button class="btn btn-primary btn-sm" onclick="openNewProcess()">+ ' + t('btn_new_process').replace('+ ','') + '</button>';
 }
 
 // ── Invite Supplier ───────────────────
@@ -1531,7 +1618,7 @@ function showView(v) {
   document.getElementById('topbar-title').textContent = (titles[v]||v).toUpperCase();
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
-  if (v==='processes') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewProcess()">+ New Process</button>'; loadProcesses(); }
+  if (v==='processes') { actions.innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewProcess()">${t('btn_new_process')}</button>`; loadProcesses(); }
   if (v==='suppliers') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddSupplier()">+ Add Supplier</button>'; }
   if (v==='products')  { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddProductModal(null)">+ Add Product</button> <button class="btn btn-ghost btn-sm" onclick="openCsvModalFromProducts()">↑ Import CSV</button>'; loadProductsMaster(); }
   if (v==='steps')     { actions.innerHTML=''; }
