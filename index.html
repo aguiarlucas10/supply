@@ -673,6 +673,10 @@ tr:hover td { background: var(--surface2); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         Suppliers
       </a>
+      <a onclick="showView('products')" id="nav-products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        Products
+      </a>
       <a onclick="showView('quotes')" id="nav-quotes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         Quotes
@@ -740,9 +744,28 @@ tr:hover td { background: var(--surface2); }
           </div>
           <table>
             <thead>
-              <tr><th>Name</th><th>Contact</th><th>Email</th><th>Added</th><th></th></tr>
+              <tr><th>Name</th><th>Contact</th><th>Email</th><th>Categories</th><th>Added</th><th></th></tr>
             </thead>
             <tbody id="suppliers-table"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="view-products" class="view">
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-ghost btn-sm prod-filter active" onclick="filterProducts('all',this)">All</button>
+          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Relógios',this)">Relógios</button>
+          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Óculos',this)">Óculos</button>
+          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Semijoias',this)">Semijoias</button>
+          <input id="prod-search" placeholder="Search SKU or name..." style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:#fff;font-family:Questrial,sans-serif;font-size:12px;font-weight:500;padding:7px 12px;border-radius:var(--radius);outline:none;width:220px;" oninput="renderProductsTable()" />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>SKU</th><th>Name</th><th>Category</th><th>Process</th><th>Qty</th><th>Plating</th><th>Suppliers w/ Sample</th></tr>
+            </thead>
+            <tbody id="products-master-table"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -771,6 +794,10 @@ tr:hover td { background: var(--surface2); }
       <div class="field"><label>Supplier Name *</label><input id="s-name" placeholder="e.g. Yuki" /></div>
       <div class="field"><label>Contact Name</label><input id="s-contact" placeholder="e.g. Yuki Chan" /></div>
       <div class="field"><label>Email</label><input id="s-email" type="email" placeholder="yuki@example.com" /></div>
+      <div class="field">
+        <label>Categories Supplied</label>
+        <div id="s-categories" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"></div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-supplier')">Cancel</button>
@@ -808,6 +835,12 @@ tr:hover td { background: var(--surface2); }
       <div class="field-row">
         <div class="field"><label>SKU</label><input id="prod-sku" placeholder="e.g. NK-001" /></div>
         <div class="field"><label>Product Name *</label><input id="prod-name" placeholder="e.g. Chain Necklace" /></div>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="prod-category">
+          <option value="">— Select category —</option>
+        </select>
       </div>
       <div class="field"><label>Description</label><textarea id="prod-desc" placeholder="Specifications, details..." style="min-height:60px;"></textarea></div>
       <div class="field-row">
@@ -1464,6 +1497,223 @@ function toast(msg, type = '') {
   el.className = `show ${type}`;
   setTimeout(() => el.classList.remove('show', type), 3000);
 }
+
+
+// ── Global state ──
+let allCategories = [];
+let allProductsMaster = [];
+let activeProductFilter = 'all';
+
+// ── Load categories ──
+async function loadCategories() {
+  const { data } = await db.from('categories').select('*').order('name');
+  allCategories = data || [];
+
+  // Populate product modal select
+  const sel = document.getElementById('prod-category');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Select category —</option>' +
+      allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  // Populate supplier category checkboxes
+  const container = document.getElementById('s-categories');
+  if (container) {
+    container.innerHTML = allCategories.map(c =>
+      `<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;cursor:pointer;">
+        <input type="checkbox" value="${c.id}" style="accent-color:#fff;width:14px;height:14px;" />
+        ${c.name}
+      </label>`
+    ).join('');
+  }
+}
+
+// ── Products master view ──
+async function loadProductsMaster() {
+  const { data } = await db
+    .from('products')
+    .select('*, category:categories(name), process:processes(name)')
+    .order('created_at', { ascending: false });
+
+  allProductsMaster = data || [];
+
+  // For each product, get which suppliers have a sample
+  if (allProductsMaster.length > 0) {
+    const productIds = allProductsMaster.map(p => p.id);
+    const { data: samples } = await db
+      .from('product_samples')
+      .select('product_id, supplier:suppliers(name)')
+      .in('product_id', productIds);
+
+    const sampleMap = {};
+    (samples || []).forEach(s => {
+      if (!sampleMap[s.product_id]) sampleMap[s.product_id] = [];
+      sampleMap[s.product_id].push(s.supplier.name);
+    });
+    allProductsMaster = allProductsMaster.map(p => ({
+      ...p,
+      sampleSuppliers: sampleMap[p.id] || []
+    }));
+  }
+
+  renderProductsTable();
+}
+
+function filterProducts(cat, btn) {
+  activeProductFilter = cat;
+  document.querySelectorAll('.prod-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProductsTable();
+}
+
+function renderProductsTable() {
+  const search = (document.getElementById('prod-search')?.value || '').toLowerCase();
+  let rows = allProductsMaster;
+
+  if (activeProductFilter !== 'all') {
+    rows = rows.filter(p => p.category?.name === activeProductFilter);
+  }
+  if (search) {
+    rows = rows.filter(p =>
+      (p.sku || '').toLowerCase().includes(search) ||
+      p.name.toLowerCase().includes(search)
+    );
+  }
+
+  const tbody = document.getElementById('products-master-table');
+  if (!tbody) return;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">No products found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(p => {
+    const samplers = p.sampleSuppliers && p.sampleSuppliers.length > 0
+      ? p.sampleSuppliers.map(s =>
+          `<span style="background:#1a1a1a;border:1px solid #333;padding:2px 8px;border-radius:20px;font-size:10px;margin-right:4px;">${s}</span>`
+        ).join('')
+      : '<span style="color:var(--muted);font-size:11px;">—</span>';
+
+    return `<tr>
+      <td style="color:var(--muted)">${p.sku || '—'}</td>
+      <td>${p.name}</td>
+      <td>${p.category ? `<span class="badge" style="background:#111;border:1px solid #333;color:#fff;">${p.category.name}</span>` : '—'}</td>
+      <td style="color:var(--muted);font-size:11px;">${p.process?.name || '—'}</td>
+      <td>${p.quantity.toLocaleString()}</td>
+      <td style="color:var(--muted)">${p.plating || '—'}</td>
+      <td>${samplers}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Override addSupplier to save categories ──
+const _origAddSupplier = addSupplier;
+addSupplier = async function() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { toast('Supplier name is required.', 'error'); return; }
+
+  const { data: supplier, error } = await db.from('suppliers').insert({
+    name,
+    contact_name: document.getElementById('s-contact').value.trim() || null,
+    email: document.getElementById('s-email').value.trim() || null
+  }).select().single();
+
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+
+  // Save selected categories
+  const checked = [...document.querySelectorAll('#s-categories input:checked')];
+  if (checked.length > 0) {
+    const catRows = checked.map(cb => ({ supplier_id: supplier.id, category_id: cb.value }));
+    await db.from('supplier_categories').insert(catRows);
+  }
+
+  closeModal('modal-add-supplier');
+  document.getElementById('s-name').value = '';
+  document.getElementById('s-contact').value = '';
+  document.getElementById('s-email').value = '';
+  document.querySelectorAll('#s-categories input').forEach(cb => cb.checked = false);
+  loadSuppliers();
+  toast('Supplier added!', 'success');
+};
+
+// ── Override addProduct to save category_id ──
+const _origAddProduct = addProduct;
+addProduct = async function() {
+  const name = document.getElementById('prod-name').value.trim();
+  const qty = parseInt(document.getElementById('prod-qty').value);
+  if (!name || !qty) { toast('Name and quantity are required.', 'error'); return; }
+
+  const catId = document.getElementById('prod-category').value || null;
+
+  const { error } = await db.from('products').insert({
+    process_id: activeProcessId,
+    category_id: catId,
+    sku: document.getElementById('prod-sku').value.trim() || null,
+    name,
+    description: document.getElementById('prod-desc').value.trim() || null,
+    quantity: qty,
+    reference_price: document.getElementById('prod-refprice').value || null,
+    plating: document.getElementById('prod-plating').value.trim() || null,
+    tool_type: document.getElementById('prod-tool').value || null,
+    has_sample: document.getElementById('prod-sample').value === 'true',
+    image_url: document.getElementById('prod-img').value.trim() || null,
+    notes: document.getElementById('prod-notes').value.trim() || null
+  });
+
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  closeModal('modal-add-product');
+  ['prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-plating','prod-img','prod-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('prod-category').value = '';
+  openProcess(activeProcessId);
+  toast('Product added!', 'success');
+};
+
+// ── Override loadSuppliers to show categories ──
+const _origLoadSuppliers = loadSuppliers;
+loadSuppliers = async function() {
+  const { data } = await db.from('suppliers').select('*, supplier_categories(category:categories(name))').order('name');
+  const tbody = document.getElementById('suppliers-table');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No suppliers yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => {
+    const cats = (s.supplier_categories || []).map(sc =>
+      `<span style="background:#111;border:1px solid #333;padding:2px 8px;border-radius:20px;font-size:10px;margin-right:3px;">${sc.category.name}</span>`
+    ).join('') || '<span style="color:var(--muted)">—</span>';
+    return `<tr>
+      <td>${s.name}</td>
+      <td>${s.contact_name || '—'}</td>
+      <td>${s.email || '—'}</td>
+      <td>${cats}</td>
+      <td>${new Date(s.created_at).toLocaleDateString()}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${s.id}')">Delete</button></td>
+    </tr>`;
+  }).join('');
+};
+
+// ── Patch showView to handle products ──
+const _origShowView = showView;
+showView = function(v) {
+  _origShowView(v);
+  if (v === 'products') {
+    document.getElementById('topbar-title').textContent = 'PRODUCTS';
+    loadProductsMaster();
+  }
+};
+
+// ── Patch loadAll to include categories ──
+const _origLoadAll = loadAll;
+loadAll = async function() {
+  await loadCategories();
+  await _origLoadAll();
+};
+
+// ── Active filter button style ──
+const filterStyle = document.createElement('style');
+filterStyle.textContent = '.prod-filter.active { background:#ffffff !important; color:#000000 !important; }';
+document.head.appendChild(filterStyle);
 
 // ── Start ──
 init();
