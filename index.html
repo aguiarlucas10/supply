@@ -163,6 +163,7 @@ tr:hover td{background:var(--surface2);}
 .dropzone:hover,.dropzone.dragover{border-color:#fff;color:#fff;}
 .csv-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;font-size:11px;}
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -519,15 +520,22 @@ tr:hover td{background:var(--surface2);}
   </div>
 </div>
 
-<!-- Import CSV -->
+<!-- Import CSV / XLSX -->
 <div class="modal-overlay" id="modal-csv">
   <div class="modal modal-wide">
-    <div class="modal-head"><h2>Import Products via CSV</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-csv')">✕</button></div>
+    <div class="modal-head"><h2>Importar Produtos</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-csv')">✕</button></div>
     <div class="modal-body">
-      <p style="font-size:11px;color:var(--muted);line-height:1.7;">Colunas obrigatórias: <code style="color:#fff;font-size:11px;">sku, category</code><br>Opcionais: <code style="color:#555;font-size:11px;">name, sub_category, quantity, reference_price, plating, tool_type, has_sample, description</code></p>
+      <p style="font-size:11px;color:var(--muted);line-height:1.9;">
+        Aceita <strong style="color:#fff;">.xlsx</strong> ou <strong style="color:#fff;">.csv</strong><br>
+        Colunas obrigatórias: <code style="color:#fff;font-size:11px;">sku, category</code><br>
+        Opcionais: <code style="color:#555;font-size:11px;">name, sub_category, quantity, reference_price, plating, tool_type, description</code><br>
+        Categorias válidas: <code style="color:#fff;font-size:11px;">RELÓGIOS &nbsp;·&nbsp; SEMIJOIAS &nbsp;·&nbsp; ÓCULOS &nbsp;·&nbsp; OUTROS</code>
+      </p>
       <div class="dropzone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
-        Drop CSV here or click to browse
-        <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="handleCsvFile(this.files[0])"/>
+        <div style="font-size:22px;margin-bottom:6px;">📂</div>
+        <div>Arraste o arquivo ou clique para selecionar</div>
+        <div style="font-size:10px;margin-top:4px;color:#444;">.xlsx recomendado · .csv também aceito</div>
+        <input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleCsvFile(this.files[0])"/>
       </div>
       <div id="csv-preview-wrap" style="display:none;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:8px;" id="csv-summary"></div>
@@ -535,8 +543,8 @@ tr:hover td{background:var(--surface2);}
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('modal-csv')">Cancel</button>
-      <button class="btn btn-primary" id="csv-import-btn" onclick="importCsv()" style="display:none;">Import Products</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-csv')">Cancelar</button>
+      <button class="btn btn-primary" id="csv-import-btn" onclick="importCsv()" style="display:none;">Importar Produtos</button>
     </div>
   </div>
 </div>
@@ -1317,91 +1325,94 @@ function openCsvModal(processId) {
   openModal('modal-csv');
 }
 
+// ── Shared helpers ──────────────────────────────────────────────────────────
+const _CAT_MAP = {
+  'RELÓGIOS':'Relógios','RELOGIOS':'Relógios',
+  'SEMIJOIAS':'Semijoias',
+  'ÓCULOS':'Óculos','OCULOS':'Óculos',
+  'OUTROS':'Outros',
+};
+function _normCat(v) {
+  const u = (v||'').toString().trim().toUpperCase();
+  return _CAT_MAP[u] || (v||'').toString().trim();
+}
+function _normKey(k) {
+  return (k||'').toString().trim().toLowerCase().replace(/[\s_]+/g,'_');
+}
+function _parseRows(rows) {
+  // rows = array of arrays; rows[0] is header
+  const headers = rows[0].map(_normKey);
+  const idx = keys => { for(const k of keys){ const i=headers.indexOf(k); if(i>=0)return i; } return -1; };
+  const iSku  = idx(['sku']);
+  const iCat  = idx(['category','categoria']);
+  const iSub  = idx(['sub_category','sub_categoria','subcategory']);
+  const iName = idx(['name','nome']);
+  const iQty  = idx(['quantity','quantidade','qty']);
+  const iPrc  = idx(['reference_price','preco','price','ref_price']);
+  const iPlat = idx(['plating','banho']);
+  const iTool = idx(['tool_type']);
+  const iDesc = idx(['description','descricao']);
+
+  if (iSku < 0) { toast('Coluna "sku" não encontrada.','error'); return false; }
+  if (iCat < 0) { toast('Coluna "category" não encontrada.','error'); return false; }
+
+  const g = (row,i) => i>=0 ? (row[i]||'').toString().trim() : '';
+  csvParsedRows = rows.slice(1).map(row => ({
+    sku:             g(row,iSku),
+    name:            g(row,iName),
+    category:        _normCat(g(row,iCat)),
+    sub_category:    g(row,iSub),
+    quantity:        g(row,iQty),
+    reference_price: g(row,iPrc),
+    plating:         g(row,iPlat),
+    tool_type:       g(row,iTool),
+    description:     g(row,iDesc),
+  })).filter(r => r.sku);
+  renderCsvPreview();
+  return true;
+}
+
 function handleCsvFile(file) {
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    // Normalize: strip BOM, handle CRLF and LF
-    const raw = e.target.result.replace(/^\uFEFF/, '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-    const lines = raw.split('\n').filter(l=>l.trim());
-    if (lines.length < 2) { toast('CSV precisa ter cabeçalho e pelo menos uma linha.','error'); return; }
+  const ext = file.name.split('.').pop().toLowerCase();
 
-    // Parse header — normalize: lowercase + trim + replace spaces/underscores
-    const normalizeKey = k => k.trim().toLowerCase().replace(/[_ ]+/g,'_');
-    const headers = lines[0].split(',').map(normalizeKey);
-
-    // Build column aliases: accept SKU/sku, Category/category, Sub_Category/sub_category etc
-    const colAlias = {
-      'sku': 'sku',
-      'category': 'category',
-      'sub_category': 'sub_category',
-      'name': 'name',
-      'quantity': 'quantity',
-      'reference_price': 'reference_price',
-      'plating': 'plating',
-      'tool_type': 'tool_type',
-      'has_sample': 'has_sample',
-      'description': 'description',
+  if (ext === 'xlsx' || ext === 'xls') {
+    // ── XLSX via SheetJS (zero encoding issues) ──────────────────────────────
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb   = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+        if (rows.length < 2) { toast('Planilha vazia ou sem dados.','error'); return; }
+        _parseRows(rows);
+      } catch(err) { toast('Erro ao ler XLSX: ' + err.message,'error'); }
     };
+    reader.readAsArrayBuffer(file);
 
-    // Map actual column indexes
-    const colIdx = {};
-    headers.forEach((h,i) => { if (colAlias[h]) colIdx[colAlias[h]] = i; });
-
-    if (colIdx['sku'] === undefined) { toast('Coluna SKU não encontrada.','error'); return; }
-    if (colIdx['category'] === undefined) { toast('Coluna Category não encontrada.','error'); return; }
-
-    // Category normalizer: RELÓGIOS->Relógios, SEMIJOIAS->Semijoias, ÓCULOS->Óculos, OUTROS->Outros
-    // Map category: match by uppercase stripped value
-    const catMap = {
-      'RELÓGIOS': 'Relógios', 'RELOGIOS': 'Relógios',
-      'SEMIJOIAS': 'Semijoias',
-      'ÓCULOS': 'Óculos', 'OCULOS': 'Óculos',
-      'OUTROS': 'Outros',
-    };
-    const normalizeCategory = v => {
-      const upper = (v||'').trim().toUpperCase();
-      return catMap[upper] || (v||'').trim();
-    };
-
-    // CSV parser that handles quoted fields
-    const parseCSVLine = line => {
-      const result = [];
-      let cur = '', inQ = false;
-      for (let i=0; i<line.length; i++) {
-        const c = line[i];
-        if (c==='"') { inQ=!inQ; }
-        else if (c===',' && !inQ) { result.push(cur.trim()); cur=''; }
-        else { cur+=c; }
-      }
-      result.push(cur.trim());
-      return result;
-    };
-
-    const getCol = (vals, key) => {
-      const i = colIdx[key];
-      return i !== undefined ? (vals[i]||'').trim().replace(/^"+|"+$/g,'') : '';
-    };
-
-    csvParsedRows = lines.slice(1).map(line => {
-      const vals = parseCSVLine(line);
-      return {
-        sku:             getCol(vals,'sku'),
-        name:            getCol(vals,'name'),
-        category:        normalizeCategory(getCol(vals,'category')),
-        sub_category:    getCol(vals,'sub_category'),
-        quantity:        getCol(vals,'quantity'),
-        reference_price: getCol(vals,'reference_price'),
-        plating:         getCol(vals,'plating'),
-        tool_type:       getCol(vals,'tool_type'),
-        has_sample:      getCol(vals,'has_sample'),
-        description:     getCol(vals,'description'),
+  } else {
+    // ── CSV (UTF-8 with BOM handling) ────────────────────────────────────────
+    const reader = new FileReader();
+    reader.onload = e => {
+      const raw   = e.target.result.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+      const lines = raw.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { toast('CSV precisa ter cabeçalho e ao menos uma linha.','error'); return; }
+      const parseCSVLine = line => {
+        const res=[]; let cur='', inQ=false;
+        for(const c of line){
+          if(c==='"') inQ=!inQ;
+          else if(c===',' && !inQ){ res.push(cur.trim()); cur=''; }
+          else cur+=c;
+        }
+        res.push(cur.trim());
+        return res;
       };
-    }).filter(r=>r.sku);
-
-    renderCsvPreview();
-  };
-  reader.readAsText(file, 'UTF-8');
+      const header = parseCSVLine(lines[0]);
+      const rows   = [header, ...lines.slice(1).map(parseCSVLine)];
+      _parseRows(rows);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
 }
 
 async function renderCsvPreview() {
