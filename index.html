@@ -147,6 +147,17 @@ tr:hover td{background:var(--surface2);}
 .search-input{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:#fff;font-family:'Questrial',sans-serif;font-size:12px;font-weight:500;padding:6px 11px;border-radius:var(--radius);outline:none;width:200px;transition:border-color .15s;}
 .search-input:focus{border-color:#fff;}
 
+/* Steps */
+.step-card{display:flex;gap:20px;padding:20px 0;border-bottom:1px solid var(--border);}
+.step-card:last-child{border-bottom:none;}
+.step-num{font-size:22px;font-weight:400;color:var(--border);letter-spacing:.05em;flex-shrink:0;width:36px;padding-top:2px;}
+.step-body{flex:1;}
+.step-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
+.step-body p{font-size:12px;color:var(--muted);line-height:1.8;}
+.step-body strong{color:#fff;font-weight:600;}
+.step-body em{color:#aaa;font-style:normal;}
+.step-tip{background:var(--surface2);border-left:2px solid #fff;padding:10px 14px;margin-top:12px;font-size:11px;color:#aaa;line-height:1.7;border-radius:0 var(--radius) var(--radius) 0;}
+
 /* CSV drop zone */
 .dropzone{border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;}
 .dropzone:hover,.dropzone.dragover{border-color:#fff;color:#fff;}
@@ -204,6 +215,10 @@ tr:hover td{background:var(--surface2);}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
         Processes
       </a>
+      <a onclick="showView('quotes')" id="nav-quotes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Quotes
+      </a>
       <a onclick="showView('products')" id="nav-products">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
         Products
@@ -212,9 +227,9 @@ tr:hover td{background:var(--surface2);}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         Suppliers
       </a>
-      <a onclick="showView('quotes')" id="nav-quotes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        Quotes
+      <a onclick="showView('steps')" id="nav-steps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Steps
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -281,6 +296,83 @@ tr:hover td{background:var(--surface2);}
       <!-- QUOTES -->
       <div id="view-quotes" class="view">
         <div id="quotes-content"></div>
+      </div>
+
+      <!-- STEPS -->
+      <div id="view-steps" class="view">
+        <div style="max-width:680px;">
+          <p style="color:var(--muted);font-size:12px;margin-bottom:28px;line-height:1.8;">This guide walks you through the full quoting and ordering flow — from initial demand through payment organization.</p>
+
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-title">Define the Demand</div>
+              <p>Before anything, map out the products needed for the cycle. Go to <strong>Products</strong> and ensure all items are registered in the catalog with SKU, Main Category and Sub Category. You can import in bulk via CSV.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-title">Create a Process</div>
+              <p>Go to <strong>Processes → New Process</strong>. A process represents one quoting round (e.g. "Summer 2025"). Give it a clear name and set status to <em>Open</em>.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-title">Add Products to the Process</div>
+              <p>Inside the process, click <strong>+ Add Product</strong> or <strong>↑ Import CSV</strong> to add the items for this round. At this stage, fill in process-specific details: quantity, plating, tool type, and whether you have a sample.</p>
+              <div class="step-tip">⚠️ Before confirming quantities, cross-check plating differences — a price significantly lower than normal may indicate a different bath (e.g. 1mic vs 3mic). Also confirm which suppliers hold samples of each product.</div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <div class="step-title">Invite Suppliers</div>
+              <p>Click <strong>+ Invite Supplier</strong> inside the process. Choose the supplier and set a unique access password for this process. The supplier will use this password to access the portal.</p>
+              <p style="margin-top:8px;">Share the portal link and password with each supplier. The portal URL is the same as this app's URL.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">05</div>
+            <div class="step-body">
+              <div class="step-title">Suppliers Respond</div>
+              <p>Each supplier logs into the portal with their password and sees only their assigned products. They can <strong>Accept</strong>, <strong>Reject</strong>, or submit a <strong>Counter-Proposal</strong> with their price, lead time, and notes.</p>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">06</div>
+            <div class="step-body">
+              <div class="step-title">Consolidate & Allocate</div>
+              <p>Go to <strong>Quotes</strong> and open the process. The Quote Matrix shows all supplier responses side by side per product. Identify the best prices and allocate quantities accordingly.</p>
+              <div class="step-tip">💡 Use the <strong>Edit</strong> button on each quote cell to manually adjust status or price if needed after a phone/email negotiation.</div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">07</div>
+            <div class="step-body">
+              <div class="step-title">Confirm Orders with Suppliers</div>
+              <p>Once allocation is final, confirm each order with the respective supplier. Use the standard message template:</p>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px;font-size:12px;line-height:1.8;color:#ccc;font-style:italic;">
+                "Hi [name]! We reviewed and finalized the [product] order. Could you please confirm receipt and the production lead time of 60 days. Once everything is confirmed, we will organize the payments right away. Thank you!"
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">08</div>
+            <div class="step-body">
+              <div class="step-title">Organize Payments</div>
+              <p>After all suppliers confirm, organize the deposit payments (entrada) for each order. Mark the process as <strong>Finalized</strong> once payments are arranged.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -1165,13 +1257,14 @@ function showView(v) {
   document.querySelectorAll('nav a').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v)?.classList.add('active');
   document.getElementById('nav-'+v)?.classList.add('active');
-  const titles = {dashboard:'Dashboard',processes:'Processes',products:'Products',suppliers:'Suppliers',quotes:'Quotes'};
+  const titles = {dashboard:'Dashboard',processes:'Processes',products:'Products',suppliers:'Suppliers',quotes:'Quotes',steps:'Steps'};
   document.getElementById('topbar-title').textContent = (titles[v]||v).toUpperCase();
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
   if (v==='processes') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewProcess()">+ New Process</button>'; loadProcesses(); }
   if (v==='suppliers') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddSupplier()">+ Add Supplier</button>'; }
   if (v==='products')  { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddProductModal(null)">+ Add Product</button> <button class="btn btn-ghost btn-sm" onclick="openCsvModalFromProducts()">↑ Import CSV</button>'; loadProductsMaster(); }
+  if (v==='steps')     { actions.innerHTML=''; }
   if (v==='dashboard') loadDashboard();
 }
 
