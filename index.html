@@ -1263,22 +1263,29 @@ async function renderCsvPreview() {
   }
   const dupes = csvParsedRows.filter(r=>r.sku && existingSkus.includes(r.sku));
   const valid = csvParsedRows.filter(r=>!(r.sku && existingSkus.includes(r.sku)));
+  const missingCat = csvParsedRows.filter(r=>!r.category);
   document.getElementById('csv-summary').innerHTML =
-    `<span style="color:var(--success);">${valid.length} rows ready to import</span>` +
-    (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} duplicate SKUs skipped: ${dupes.map(d=>d.sku).join(', ')}</span>` : '');
+    `<span style="color:var(--success);">${valid.length} ${t('csv_ready')}</span>` +
+    (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} ${t('csv_dupes')}</span>` : '') +
+    (missingCat && missingCat.length ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${missingCat.length} sem categoria (serão importados sem)</span>` : '');
   document.getElementById('csv-preview').innerHTML =
     `<table style="width:100%;border-collapse:collapse;">
-      <thead><tr>${['SKU','Name','Category','Qty','Price','Status'].map(h=>`<th style="padding:4px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+      <thead><tr>${['SKU','Nome','Categoria','Sub Cat.','Qtd','Preço','Status'].map(h=>`<th style="padding:5px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
       <tbody>${csvParsedRows.map(r=>{
         const isDupe = r.sku && existingSkus.includes(r.sku);
-        const style = isDupe ? 'opacity:.4;' : '';
-        return `<tr style="${style}">
-          <td style="padding:4px 8px;font-size:11px;">${r.sku||'—'}</td>
-          <td style="padding:4px 8px;font-size:11px;">${r.name}</td>
-          <td style="padding:4px 8px;font-size:11px;">${r.category||'—'}</td>
-          <td style="padding:4px 8px;font-size:11px;">${r.quantity||'—'}</td>
-          <td style="padding:4px 8px;font-size:11px;">${r.reference_price||'—'}</td>
-          <td style="padding:4px 8px;font-size:11px;">${isDupe?'<span style="color:var(--danger)">Duplicate</span>':'<span style="color:var(--success)">OK</span>'}</td>
+        const noCategory = !r.category;
+        let statusLabel, rowStyle;
+        if (isDupe)        { statusLabel = '<span style="color:var(--danger)">Duplicado</span>';        rowStyle = 'opacity:.4;'; }
+        else if (noCategory){ statusLabel = '<span style="color:var(--warning)">Sem categoria</span>'; rowStyle = ''; }
+        else               { statusLabel = '<span style="color:var(--success)">OK</span>';              rowStyle = ''; }
+        return `<tr style="${rowStyle}border-bottom:1px solid #1a1a1a;">
+          <td style="padding:5px 8px;font-size:11px;font-weight:600;">${r.sku||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;">${r.name||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;">${r.category||'<span style="color:var(--warning)">—</span>'}</td>
+          <td style="padding:5px 8px;font-size:11px;color:var(--muted);">${r.sub_category||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;">${r.quantity||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;">${r.reference_price||'—'}</td>
+          <td style="padding:5px 8px;font-size:11px;">${statusLabel}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
