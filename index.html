@@ -352,11 +352,11 @@ tr:hover td{background:var(--surface2);}
     <div class="modal-body">
       <input type="hidden" id="prod-id"/>
       <div class="field-row">
-        <div class="field"><label>SKU</label><input id="prod-sku" placeholder="e.g. NK-001"/></div>
-        <div class="field"><label>Product Name *</label><input id="prod-name" placeholder="e.g. Chain Necklace"/></div>
+        <div class="field"><label>SKU *</label><input id="prod-sku" placeholder="e.g. NK-001"/></div>
+        <div class="field"><label>Product Name</label><input id="prod-name" placeholder="e.g. Chain Necklace"/></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Main Category</label>
+        <div class="field"><label>Main Category *</label>
           <select id="prod-category">
             <option value="">— Select —</option>
             <option value="Relógios">Relógios</option>
@@ -389,17 +389,11 @@ tr:hover td{background:var(--surface2);}
         <div class="field"><label>Ref. Price (USD)</label><input id="prod-refprice" type="number" step="0.01" placeholder="3.50"/></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Plating</label><input id="prod-plating" placeholder="e.g. Gold 3mic"/></div>
-        <div class="field"><label>Tool Type</label>
-          <select id="prod-tool"><option value="">No tool</option><option value="black_tool">Black Tool</option><option value="blue_tool">Blue Tool</option></select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Has Sample?</label>
-          <select id="prod-sample"><option value="false">No</option><option value="true">Yes</option></select>
-        </div>
         <div class="field"><label>Discontinued?</label>
           <select id="prod-discontinued"><option value="false">No</option><option value="true">Yes — Out of line</option></select>
+        </div>
+        <div class="field"><label>Tool Type</label>
+          <select id="prod-tool"><option value="">No tool</option><option value="black_tool">Black Tool</option><option value="blue_tool">Blue Tool</option></select>
         </div>
       </div>
       <div class="field"><label>Image URL</label><input id="prod-img" placeholder="https://…"/></div>
@@ -850,11 +844,10 @@ async function saveProcess() {
 function openAddProductModal(processId) {
   activeProcessId = processId || null;
   document.getElementById('modal-product-title').textContent = 'ADD PRODUCT';
-  ['prod-id','prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-plating','prod-img','prod-notes'].forEach(i=>document.getElementById(i).value='');
+  ['prod-id','prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-img','prod-notes'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('prod-category').value = '';
   document.getElementById('prod-subcategory').value = '';
   document.getElementById('prod-tool').value = '';
-  document.getElementById('prod-sample').value = 'false';
   document.getElementById('prod-discontinued').value = 'false';
   openModal('modal-product');
 }
@@ -869,9 +862,7 @@ async function openEditProduct(id) {
   document.getElementById('prod-desc').value = p.description||'';
   document.getElementById('prod-qty').value = p.quantity;
   document.getElementById('prod-refprice').value = p.reference_price||'';
-  document.getElementById('prod-plating').value = p.plating||'';
   document.getElementById('prod-tool').value = p.tool_type||'';
-  document.getElementById('prod-sample').value = p.has_sample?'true':'false';
   document.getElementById('prod-discontinued').value = p.discontinued?'true':'false';
   document.getElementById('prod-img').value = p.image_url||'';
   document.getElementById('prod-notes').value = p.notes||'';
@@ -881,11 +872,13 @@ async function openEditProduct(id) {
 }
 
 async function saveProduct() {
-  const name = document.getElementById('prod-name').value.trim();
-  const qty  = parseInt(document.getElementById('prod-qty').value);
-  if (!name || !qty) { toast('Name and quantity are required.','error'); return; }
+  const name  = document.getElementById('prod-name').value.trim();
+  const newSku = document.getElementById('prod-sku').value.trim();
+  const category = document.getElementById('prod-category').value;
+  const qty  = parseInt(document.getElementById('prod-qty').value) || 0;
+  if (!newSku) { toast('SKU is required.', 'error'); return; }
+  if (!category) { toast('Main Category is required.', 'error'); return; }
   const id = document.getElementById('prod-id').value;
-  const newSku = document.getElementById('prod-sku').value.trim() || null;
 
   // SKU duplicate check (exclude self when editing)
   if (newSku) {
@@ -897,16 +890,14 @@ async function saveProduct() {
 
   const payload = {
     process_id: activeProcessId || null,
-    category: document.getElementById('prod-category').value || null,
-    sub_category: document.getElementById('prod-subcategory').value.trim() || null,
-    sku: newSku,
-    name,
+    category: category,
+    sub_category: document.getElementById('prod-subcategory').value || null,
+    sku: newSku || null,
+    name: name || null,
     description: document.getElementById('prod-desc').value.trim()||null,
     quantity: qty,
     reference_price: document.getElementById('prod-refprice').value||null,
-    plating: document.getElementById('prod-plating').value.trim()||null,
     tool_type: document.getElementById('prod-tool').value||null,
-    has_sample: document.getElementById('prod-sample').value === 'true',
     discontinued: document.getElementById('prod-discontinued').value === 'true',
     image_url: document.getElementById('prod-img').value.trim()||null,
     notes: document.getElementById('prod-notes').value.trim()||null
