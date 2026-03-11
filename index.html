@@ -1,642 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Saint Germain — QuoteFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ── Variables ── */
 :root {
-  --bg: #000000;
-  --surface: #0a0a0a;
-  --surface2: #111111;
-  --border: #222222;
-  --accent: #ffffff;
-  --accent2: #ffffff;
-  --text: #ffffff;
-  --muted: #555555;
-  --danger: #ff4444;
-  --success: #44cc66;
-  --warning: #ccaa44;
-  --radius: 2px;
-  --font-display: 'Questrial', sans-serif;
-  --font-mono: 'Questrial', sans-serif;
+  --bg:#000; --surface:#0a0a0a; --surface2:#111; --border:#222;
+  --text:#fff; --muted:#555; --danger:#ff4444; --success:#44cc66;
+  --warning:#ccaa44; --radius:2px;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Questrial', sans-serif;
-  font-size: 13px;
-  min-height: 100vh;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-}
-
-/* ── Config Banner ── */
-#config-banner {
-  background: var(--warning);
-  color: #1a1400;
-  padding: 10px 20px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-}
-
-/* ── Layout ── */
-#app { display: flex; min-height: 100vh; }
-
-/* ── Sidebar ── */
-#sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.sidebar-logo {
-  padding: 32px 24px 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.sidebar-logo h1 {
-  font-family: 'Questrial', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-}
-
-.sidebar-logo span {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-
-nav { padding: 16px 0; flex: 1; }
-
-nav a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: all 0.15s;
-  cursor: pointer;
-  border-left: 2px solid transparent;
-}
-
-nav a:hover { color: var(--text); background: var(--surface2); }
-nav a.active { color: #ffffff; border-left-color: #ffffff; background: var(--surface2); }
-
-nav a svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-.sidebar-footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-  font-size: 10px;
-  color: var(--muted);
-}
-
-/* ── Main ── */
-#main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.topbar {
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface);
-}
-
-.topbar-title {
-  font-family: 'Questrial', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
-
-.topbar-actions { display: flex; gap: 8px; align-items: center; }
-
-.content { padding: 32px; flex: 1; }
-
-/* ── Views ── */
-.view { display: none; }
-.view.active { display: block; }
-
-/* ── Cards ── */
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  transition: border-color 0.15s;
-}
-
-.card:hover { border-color: #ffffff; }
-
-.card-label {
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.card-value {
-  font-family: 'Questrial', sans-serif;
-  font-size: 32px;
-  font-weight: 400;
-  color: #ffffff;
-}
-
-.card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-/* ── Tables ── */
-.table-wrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-bottom: 24px;
-}
-
-.table-header {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.table-title {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-table { width: 100%; border-collapse: collapse; }
-
-th {
-  padding: 10px 16px;
-  text-align: left;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface2);
-  font-weight: 700;
-}
-
-td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #1e1e1e;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--surface2); }
-
-/* ── Buttons ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--radius);
-  font-family: 'Questrial', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.15s;
-  border: none;
-  font-weight: 700;
-}
-
-.btn-primary {
-  background: #ffffff;
-  color: #000000;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.btn-primary:hover { background: #dddddd; }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-.btn-ghost:hover { color: var(--text); border-color: var(--muted); }
-
-.btn-danger {
-  background: transparent;
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-.btn-danger:hover { background: var(--danger); color: #fff; }
-
-.btn-sm { padding: 5px 10px; font-size: 10px; }
-
-/* ── Badges ── */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 400;
-}
-
-.badge-pending { background: #1a1a1a; color: #888888; border: 1px solid #333333; }
-.badge-accepted { background: #0a1a0a; color: #44cc66; border: 1px solid #1a3a1a; }
-.badge-rejected { background: #1a0a0a; color: #ff4444; border: 1px solid #3a1a1a; }
-.badge-counter { background: #0a0a1a; color: #6ea0c9; border: 1px solid #1a1a3a; }
-.badge-open { background: #0a1a0a; color: #44cc66; border: 1px solid #1a3a1a; }
-.badge-closed { background: #1a0a0a; color: #ff4444; border: 1px solid #3a1a1a; }
-.badge-finalized { background: #111111; color: #ffffff; border: 1px solid #444444; }
-
-/* ── Forms ── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(2px);
-}
-
-.modal-overlay.open { display: flex; }
-
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  width: 480px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-head {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-head h2 {
-  font-family: 'Questrial', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-.modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-
-.field input, .field select, .field textarea {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-family: 'Questrial', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 9px 12px;
-  outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
-}
-
-.field input:focus, .field select:focus, .field textarea:focus {
-  border-color: #ffffff;
-}
-
-.field textarea { resize: vertical; min-height: 80px; }
-
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-/* ── Login Screen ── */
-#login-screen {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-
-#login-screen.active { display: flex; }
-
-.login-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  width: 380px;
-  padding: 40px;
-  border-radius: var(--radius);
-}
-
-.login-box h1 {
-  font-family: 'Questrial', sans-serif;
-  font-size: 18px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.login-box p {
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  margin-bottom: 28px;
-}
-
-/* ── Supplier Portal ── */
-#supplier-portal {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: none;
-  flex-direction: column;
-  z-index: 150;
-  overflow-y: auto;
-}
-
-#supplier-portal.active { display: flex; }
-
-.portal-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.portal-header h1 {
-  font-family: 'Questrial', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-}
-
-.portal-content { padding: 40px; max-width: 900px; margin: 0 auto; width: 100%; }
-
-.portal-intro {
-  margin-bottom: 28px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 24px;
-}
-
-.portal-intro h2 {
-  font-family: 'Questrial', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #ffffff;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.portal-intro p { color: var(--muted); font-size: 11px; line-height: 1.7; }
-
-.product-quote-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
-  overflow: hidden;
-  transition: border-color 0.15s;
-}
-
-.product-quote-card:hover { border-color: #ffffff; }
-
-.pqc-head {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-}
-
-.pqc-info h3 { font-family: 'Questrial', sans-serif; font-size: 14px; font-weight: 400; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; }
-.pqc-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-.pqc-body { padding: 20px; }
-
-.pqc-meta {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.pqc-meta-item { font-size: 11px; color: var(--muted); }
-.pqc-meta-item span { color: var(--text); display: block; margin-top: 2px; }
-
-.pqc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
-
-.quote-response-form {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-top: 12px;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.quote-response-form.open { display: flex; }
-
-/* ── Separator ── */
-.section-title {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 700;
-  margin-bottom: 16px;
-  margin-top: 28px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* ── Empty states ── */
-.empty {
-  padding: 48px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-/* ── Toast ── */
-#toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 20px;
-  font-size: 12px;
-  color: var(--text);
-  z-index: 999;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: all 0.2s;
-  pointer-events: none;
-}
-
-#toast.show { opacity: 1; transform: translateY(0); }
-#toast.success { border-color: var(--success); color: var(--success); }
-#toast.error { border-color: var(--danger); color: var(--danger); }
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-/* ── Tabs ── */
-.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-.tab {
-  padding: 10px 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.15s;
-}
-.tab.active { color: #ffffff; border-bottom-color: #ffffff; }
-.tab:hover { color: var(--text); }
-
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-/* ── Checklist ── */
-.checklist { display: flex; flex-direction: column; gap: 8px; }
-
-.check-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12px;
-}
-
-.check-item input[type=checkbox] { accent-color: #ffffff; width: 14px; height: 14px; }
-.check-item.checked { border-color: #203020; background: #111811; }
-.check-item label { cursor: pointer; }
-
-/* Responsive */
-@media (max-width: 768px) {
-  #sidebar { display: none; }
-  .content { padding: 16px; }
-}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Questrial',sans-serif;font-size:13px;min-height:100vh;font-weight:500;letter-spacing:.04em;}
+
+/* Banner */
+#config-banner{background:var(--warning);color:#1a1400;padding:10px 20px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.05em;display:none;}
+
+/* Layout */
+#app{display:flex;min-height:100vh;}
+
+/* Sidebar */
+#sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.sidebar-logo h1{font-size:13px;font-weight:500;color:#fff;letter-spacing:.35em;text-transform:uppercase;line-height:1.5;}
+.sidebar-logo span{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-top:4px;}
+nav{padding:16px 0;flex:1;}
+nav a{display:flex;align-items:center;gap:10px;padding:10px 24px;color:var(--muted);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;transition:all .15s;cursor:pointer;border-left:2px solid transparent;}
+nav a:hover{color:#fff;background:var(--surface2);}
+nav a.active{color:#fff;border-left-color:#fff;background:var(--surface2);}
+nav a svg{width:14px;height:14px;flex-shrink:0;}
+.sidebar-footer{padding:14px 24px;border-top:1px solid var(--border);}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{padding:18px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+.topbar-title{font-size:13px;font-weight:500;color:#fff;letter-spacing:.3em;text-transform:uppercase;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.content{padding:28px 32px;flex:1;}
+.view{display:none;}.view.active{display:block;}
+
+/* Cards */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:28px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:border-color .15s;}
+.card:hover{border-color:#fff;}
+.card-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px;}
+.card-value{font-size:30px;font-weight:400;color:#fff;}
+.card-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* Tables */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+.table-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+table{width:100%;border-collapse:collapse;}
+th{padding:9px 14px;text-align:left;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);font-weight:700;}
+td{padding:11px 14px;border-bottom:1px solid #161616;color:#fff;font-size:12px;font-weight:500;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--radius);font-family:'Questrial',sans-serif;font-size:11px;letter-spacing:.08em;cursor:pointer;transition:all .15s;border:none;font-weight:700;text-transform:uppercase;}
+.btn-primary{background:#fff;color:#000;}.btn-primary:hover{background:#ddd;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);text-transform:none;}
+.btn-ghost:hover{color:#fff;border-color:var(--muted);}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-warn{background:transparent;color:var(--warning);border:1px solid var(--warning);}
+.btn-warn:hover{background:var(--warning);color:#000;}
+.btn-sm{padding:4px 9px;font-size:10px;}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;letter-spacing:.06em;font-weight:600;}
+.badge-pending{background:#1a1a1a;color:#888;border:1px solid #333;}
+.badge-accepted{background:#0a1a0a;color:var(--success);border:1px solid #1a3a1a;}
+.badge-rejected{background:#1a0a0a;color:var(--danger);border:1px solid #3a1a1a;}
+.badge-counter{background:#0a0a1a;color:#6ea0c9;border:1px solid #1a1a3a;}
+.badge-open{background:#0a1a0a;color:var(--success);border:1px solid #1a3a1a;}
+.badge-closed{background:#1a0a0a;color:var(--danger);border:1px solid #3a1a1a;}
+.badge-finalized{background:#111;color:#fff;border:1px solid #444;}
+.badge-discontinued{background:#1a1a0a;color:var(--warning);border:1px solid #3a3a1a;}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:500px;max-width:96vw;max-height:92vh;overflow-y:auto;}
+.modal-wide{width:700px;}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-head h2{font-size:13px;font-weight:500;color:#fff;letter-spacing:.2em;text-transform:uppercase;}
+.modal-body{padding:22px;display:flex;flex-direction:column;gap:14px;}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:#fff;font-family:'Questrial',sans-serif;font-size:12px;font-weight:500;padding:8px 11px;outline:none;transition:border-color .15s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#fff;}
+.field textarea{resize:vertical;min-height:70px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.field select option{background:#111;}
+
+/* Login */
+#login-screen{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200;}
+#login-screen.active{display:flex;}
+.login-box{background:var(--surface);border:1px solid var(--border);width:360px;padding:40px;border-radius:var(--radius);}
+.login-box h1{font-size:16px;font-weight:500;color:#fff;letter-spacing:.4em;text-transform:uppercase;margin-bottom:4px;}
+.login-box p{color:var(--muted);font-size:11px;letter-spacing:.06em;margin-bottom:26px;}
+
+/* Supplier Portal */
+#supplier-portal{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:150;overflow-y:auto;}
+#supplier-portal.active{display:flex;}
+.portal-header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 36px;display:flex;align-items:center;justify-content:space-between;}
+.portal-header h1{font-size:13px;font-weight:500;color:#fff;letter-spacing:.35em;text-transform:uppercase;}
+.portal-content{padding:36px;max-width:860px;margin:0 auto;width:100%;}
+.portal-intro{margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;}
+.portal-intro h2{font-size:13px;font-weight:500;color:#fff;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;}
+.portal-intro p{color:var(--muted);font-size:11px;line-height:1.7;}
+.pqc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;transition:border-color .15s;}
+.pqc:hover{border-color:#fff;}
+.pqc-head{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.pqc-info h3{font-size:13px;font-weight:500;color:#fff;letter-spacing:.1em;text-transform:uppercase;}
+.pqc-info p{font-size:11px;color:var(--muted);margin-top:2px;}
+.pqc-body{padding:18px;}
+.pqc-meta{display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap;}
+.pqc-meta-item{font-size:11px;color:var(--muted);}
+.pqc-meta-item span{color:#fff;display:block;margin-top:2px;}
+.pqc-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.counter-form{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:11px;display:none;flex-direction:column;gap:11px;}
+.counter-form.open{display:flex;}
+
+/* Section title */
+.section-title{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px;margin-top:24px;padding-bottom:7px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+
+/* Misc */
+.empty{padding:40px;text-align:center;color:var(--muted);font-size:12px;}
+#toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:11px 18px;font-size:12px;color:#fff;z-index:999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.success{border-color:var(--success);color:var(--success);}
+#toast.error{border-color:var(--danger);color:var(--danger);}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.tag{display:inline-block;background:#111;border:1px solid #333;padding:2px 8px;border-radius:20px;font-size:10px;margin-right:3px;}
+.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+.filter-btn{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-family:'Questrial',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;cursor:pointer;transition:all .15s;}
+.filter-btn:hover{color:#fff;border-color:var(--muted);}
+.filter-btn.active{background:#fff;color:#000;border-color:#fff;}
+.search-input{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:#fff;font-family:'Questrial',sans-serif;font-size:12px;font-weight:500;padding:6px 11px;border-radius:var(--radius);outline:none;width:200px;transition:border-color .15s;}
+.search-input:focus{border-color:#fff;}
+
+/* CSV drop zone */
+.dropzone{border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;}
+.dropzone:hover,.dropzone.dragover{border-color:#fff;color:#fff;}
+.csv-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;font-size:11px;}
 </style>
 </head>
 <body>
 
-<!-- ─────────────────────────────────────────────
-  CONFIG BANNER (shown until Supabase is configured)
-───────────────────────────────────────────── -->
-<div id="config-banner">
-  ⚠️ Configure your Supabase credentials in the &lt;script&gt; section at the bottom of this file before using the app.
-</div>
+<div id="config-banner">⚠️ Configure your Supabase credentials in the script section before using the app.</div>
 
-<!-- ─────────────────────────────────────────────
-  SUPPLIER LOGIN SCREEN
-───────────────────────────────────────────── -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>SAINT GERMAIN</h1>
+    <h1>Saint<br>Germain</h1>
     <p>Enter your supplier access password to view and respond to quotes.</p>
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      <div class="field">
-        <label>Access Password</label>
-        <input type="password" id="supplier-password-input" placeholder="••••••••" />
-      </div>
-      <button class="btn btn-primary" onclick="supplierLogin()" style="width:100%;justify-content:center;padding:12px;">
-        Access Portal →
-      </button>
-      <div style="text-align:center;">
-        <a onclick="showAdminLogin()" style="color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;">Admin login</a>
-      </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="field"><label>Access Password</label><input type="password" id="supplier-password-input" placeholder="••••••••"/></div>
+      <button class="btn btn-primary" onclick="supplierLogin()" style="width:100%;justify-content:center;padding:11px;">Access Portal →</button>
+      <div style="text-align:center;"><a onclick="showAdminLogin()" style="color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;">Admin login</a></div>
     </div>
   </div>
 </div>
 
-<!-- ─────────────────────────────────────────────
-  SUPPLIER PORTAL
-───────────────────────────────────────────── -->
+<!-- SUPPLIER PORTAL -->
 <div id="supplier-portal">
   <div class="portal-header">
-    <h1>SAINT GERMAIN <span style="color:var(--muted);font-size:11px;font-family:'Questrial',sans-serif;letter-spacing:0.2em;">/ SUPPLIER PORTAL</span></h1>
+    <h1>Saint Germain <span style="color:var(--muted);font-size:11px;letter-spacing:.15em;">/ Supplier Portal</span></h1>
     <div style="display:flex;align-items:center;gap:12px;">
       <span id="portal-supplier-name" style="font-size:12px;color:var(--muted);"></span>
       <button class="btn btn-ghost btn-sm" onclick="supplierLogout()">Exit</button>
@@ -644,20 +181,18 @@ tr:hover td { background: var(--surface2); }
   </div>
   <div class="portal-content">
     <div class="portal-intro">
-      <h2 id="portal-process-name">Process Name</h2>
-      <p id="portal-process-desc">Please review each product below and accept, reject, or submit a counter-proposal for any item. Your responses are saved automatically.</p>
+      <h2 id="portal-process-name">Process</h2>
+      <p id="portal-process-desc">Review each product and accept, reject, or submit a counter-proposal.</p>
     </div>
     <div id="portal-products-list"></div>
   </div>
 </div>
 
-<!-- ─────────────────────────────────────────────
-  ADMIN APP
-───────────────────────────────────────────── -->
+<!-- ADMIN APP -->
 <div id="app">
   <div id="sidebar">
     <div class="sidebar-logo">
-      <h1>SAINT<br>GERMAIN</h1>
+      <h1>Saint<br>Germain</h1>
       <span>Admin Panel</span>
     </div>
     <nav>
@@ -666,16 +201,16 @@ tr:hover td { background: var(--surface2); }
         Dashboard
       </a>
       <a onclick="showView('processes')" id="nav-processes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
         Processes
-      </a>
-      <a onclick="showView('suppliers')" id="nav-suppliers">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        Suppliers
       </a>
       <a onclick="showView('products')" id="nav-products">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
         Products
+      </a>
+      <a onclick="showView('suppliers')" id="nav-suppliers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Suppliers
       </a>
       <a onclick="showView('quotes')" id="nav-quotes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -683,7 +218,6 @@ tr:hover td { background: var(--surface2); }
       </a>
     </nav>
     <div class="sidebar-footer">
-      <div id="admin-user-info" style="margin-bottom:8px;"></div>
       <button class="btn btn-ghost btn-sm" onclick="adminLogout()" style="width:100%;justify-content:center;">Logout</button>
     </div>
   </div>
@@ -698,41 +232,37 @@ tr:hover td { background: var(--surface2); }
       <!-- DASHBOARD -->
       <div id="view-dashboard" class="view active">
         <div class="cards-grid">
-          <div class="card">
-            <div class="card-label">Active Processes</div>
-            <div class="card-value" id="stat-processes">—</div>
-            <div class="card-sub">Currently open</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Suppliers</div>
-            <div class="card-value" id="stat-suppliers">—</div>
-            <div class="card-sub">Total registered</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Pending Quotes</div>
-            <div class="card-value" id="stat-pending">—</div>
-            <div class="card-sub">Awaiting response</div>
-          </div>
-          <div class="card">
-            <div class="card-label">Responded</div>
-            <div class="card-value" id="stat-responded">—</div>
-            <div class="card-sub">Accepted + counter</div>
-          </div>
+          <div class="card"><div class="card-label">Active Processes</div><div class="card-value" id="stat-processes">—</div><div class="card-sub">Currently open</div></div>
+          <div class="card"><div class="card-label">Suppliers</div><div class="card-value" id="stat-suppliers">—</div><div class="card-sub">Total registered</div></div>
+          <div class="card"><div class="card-label">Pending Quotes</div><div class="card-value" id="stat-pending">—</div><div class="card-sub">Awaiting response</div></div>
+          <div class="card"><div class="card-label">Responded</div><div class="card-value" id="stat-responded">—</div><div class="card-sub">Accepted + counter</div></div>
         </div>
         <div class="section-title">Recent Processes</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Process</th><th>Status</th><th>Products</th><th>Suppliers</th><th>Created</th><th></th></tr>
-            </thead>
-            <tbody id="dashboard-processes-table"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
-          </table>
-        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Process</th><th>Status</th><th>Created</th><th></th></tr></thead>
+          <tbody id="dashboard-processes-table"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+        </table></div>
       </div>
 
       <!-- PROCESSES -->
       <div id="view-processes" class="view">
         <div id="processes-list"></div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="view-products" class="view">
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterProducts('all',this)">All</button>
+          <button class="filter-btn" onclick="filterProducts('Relógios',this)">Relógios</button>
+          <button class="filter-btn" onclick="filterProducts('Óculos',this)">Óculos</button>
+          <button class="filter-btn" onclick="filterProducts('Semijoias',this)">Semijoias</button>
+          <button class="filter-btn" onclick="filterProducts('_discontinued',this)">Discontinued</button>
+          <input class="search-input" id="prod-search" placeholder="Search SKU or name…" oninput="renderProductsTable()"/>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Process</th><th>Qty</th><th>Plating</th><th>Suppliers w/ Sample</th><th>Status</th><th></th></tr></thead>
+          <tbody id="products-master-table"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+        </table></div>
       </div>
 
       <!-- SUPPLIERS -->
@@ -743,29 +273,8 @@ tr:hover td { background: var(--surface2); }
             <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-supplier')">+ Add Supplier</button>
           </div>
           <table>
-            <thead>
-              <tr><th>Name</th><th>Contact</th><th>Email</th><th>Categories</th><th>Added</th><th></th></tr>
-            </thead>
-            <tbody id="suppliers-table"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- PRODUCTS -->
-      <div id="view-products" class="view">
-        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-ghost btn-sm prod-filter active" onclick="filterProducts('all',this)">All</button>
-          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Relógios',this)">Relógios</button>
-          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Óculos',this)">Óculos</button>
-          <button class="btn btn-ghost btn-sm prod-filter" onclick="filterProducts('Semijoias',this)">Semijoias</button>
-          <input id="prod-search" placeholder="Search SKU or name..." style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:#fff;font-family:Questrial,sans-serif;font-size:12px;font-weight:500;padding:7px 12px;border-radius:var(--radius);outline:none;width:220px;" oninput="renderProductsTable()" />
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>SKU</th><th>Name</th><th>Category</th><th>Process</th><th>Qty</th><th>Plating</th><th>Suppliers w/ Sample</th></tr>
-            </thead>
-            <tbody id="products-master-table"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+            <thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Categories</th><th>Added</th><th></th></tr></thead>
+            <tbody id="suppliers-table"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -779,133 +288,15 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 
-<!-- ─────────────────────────────────────────────
-  MODALS
-───────────────────────────────────────────── -->
-
-<!-- Add Supplier -->
-<div class="modal-overlay" id="modal-add-supplier">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Add Supplier</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-supplier')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field"><label>Supplier Name *</label><input id="s-name" placeholder="e.g. Yuki" /></div>
-      <div class="field"><label>Contact Name</label><input id="s-contact" placeholder="e.g. Yuki Chan" /></div>
-      <div class="field"><label>Email</label><input id="s-email" type="email" placeholder="yuki@example.com" /></div>
-      <div class="field">
-        <label>Categories Supplied</label>
-        <div id="s-categories" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"></div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('modal-add-supplier')">Cancel</button>
-      <button class="btn btn-primary" onclick="addSupplier()">Save Supplier</button>
-    </div>
-  </div>
-</div>
-
-<!-- New Process -->
-<div class="modal-overlay" id="modal-new-process">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>New Process</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-new-process')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field"><label>Process Name *</label><input id="p-name" placeholder="e.g. Summer 2025 Collection" /></div>
-      <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description of this quoting round..."></textarea></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('modal-new-process')">Cancel</button>
-      <button class="btn btn-primary" onclick="createProcess()">Create Process</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add Product -->
-<div class="modal-overlay" id="modal-add-product">
-  <div class="modal" style="width:560px;">
-    <div class="modal-head">
-      <h2>Add Product</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-product')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field-row">
-        <div class="field"><label>SKU</label><input id="prod-sku" placeholder="e.g. NK-001" /></div>
-        <div class="field"><label>Product Name *</label><input id="prod-name" placeholder="e.g. Chain Necklace" /></div>
-      </div>
-      <div class="field">
-        <label>Category</label>
-        <select id="prod-category">
-          <option value="">— Select category —</option>
-        </select>
-      </div>
-      <div class="field"><label>Description</label><textarea id="prod-desc" placeholder="Specifications, details..." style="min-height:60px;"></textarea></div>
-      <div class="field-row">
-        <div class="field"><label>Quantity *</label><input id="prod-qty" type="number" min="1" placeholder="500" /></div>
-        <div class="field"><label>Ref. Price (USD)</label><input id="prod-refprice" type="number" step="0.01" placeholder="3.50" /></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Plating</label><input id="prod-plating" placeholder="e.g. Gold 3mic" /></div>
-        <div class="field"><label>Tool Type</label>
-          <select id="prod-tool">
-            <option value="">No tool</option>
-            <option value="black_tool">Black Tool</option>
-            <option value="blue_tool">Blue Tool</option>
-          </select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Has Sample?</label>
-          <select id="prod-sample">
-            <option value="false">No</option>
-            <option value="true">Yes</option>
-          </select>
-        </div>
-        <div class="field"><label>Image URL</label><input id="prod-img" placeholder="https://..." /></div>
-      </div>
-      <div class="field"><label>Internal Notes</label><textarea id="prod-notes" placeholder="Notes for internal use..." style="min-height:50px;"></textarea></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('modal-add-product')">Cancel</button>
-      <button class="btn btn-primary" onclick="addProduct()">Add Product</button>
-    </div>
-  </div>
-</div>
-
-<!-- Invite Supplier to Process -->
-<div class="modal-overlay" id="modal-invite-supplier">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Invite Supplier</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invite-supplier')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field"><label>Supplier</label>
-        <select id="invite-supplier-id"></select>
-      </div>
-      <div class="field"><label>Access Password *</label><input id="invite-password" placeholder="e.g. yuki2025" /></div>
-      <p style="font-size:11px;color:var(--muted);line-height:1.6;">This password will be given to the supplier. They use it to access the portal and respond to quotes for this specific process.</p>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('modal-invite-supplier')">Cancel</button>
-      <button class="btn btn-primary" onclick="inviteSupplier()">Invite Supplier</button>
-    </div>
-  </div>
-</div>
+<!-- ═══════════════ MODALS ═══════════════ -->
 
 <!-- Admin Login -->
 <div class="modal-overlay" id="modal-admin-login">
   <div class="modal">
-    <div class="modal-head">
-      <h2>Admin Login</h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-admin-login')">✕</button>
-    </div>
+    <div class="modal-head"><h2>Admin Login</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-admin-login')">✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Email</label><input id="admin-email" type="email" placeholder="you@email.com" /></div>
-      <div class="field"><label>Password</label><input id="admin-pass" type="password" placeholder="••••••••" /></div>
+      <div class="field"><label>Email</label><input id="admin-email" type="email" placeholder="you@email.com"/></div>
+      <div class="field"><label>Password</label><input id="admin-pass" type="password" placeholder="••••••••"/></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-admin-login')">Cancel</button>
@@ -914,808 +305,889 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 
-<!-- Toast -->
+<!-- Add / Edit Supplier -->
+<div class="modal-overlay" id="modal-supplier">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modal-supplier-title">Add Supplier</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-supplier')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="s-id"/>
+      <div class="field"><label>Supplier Name *</label><input id="s-name" placeholder="e.g. Yuki"/></div>
+      <div class="field"><label>Contact Name</label><input id="s-contact" placeholder="e.g. Yuki Chan"/></div>
+      <div class="field"><label>Email</label><input id="s-email" type="email" placeholder="yuki@example.com"/></div>
+      <div class="field"><label>Categories Supplied</label><div id="s-categories" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"></div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-supplier')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Process -->
+<div class="modal-overlay" id="modal-process">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modal-process-title">New Process</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-process')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="p-id"/>
+      <div class="field"><label>Process Name *</label><input id="p-name" placeholder="e.g. Summer 2025 Collection"/></div>
+      <div class="field"><label>Description</label><textarea id="p-desc" placeholder="Brief description…"></textarea></div>
+      <div class="field"><label>Status</label>
+        <select id="p-status">
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+          <option value="finalized">Finalized</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-process')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProcess()">Save Process</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Product -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal modal-wide">
+    <div class="modal-head"><h2 id="modal-product-title">Add Product</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-product')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="prod-id"/>
+      <div class="field-row">
+        <div class="field"><label>SKU</label><input id="prod-sku" placeholder="e.g. NK-001"/></div>
+        <div class="field"><label>Product Name *</label><input id="prod-name" placeholder="e.g. Chain Necklace"/></div>
+      </div>
+      <div class="field"><label>Category</label>
+        <select id="prod-category"><option value="">— Select category —</option></select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="prod-desc" placeholder="Specifications, details…" style="min-height:55px;"></textarea></div>
+      <div class="field-row">
+        <div class="field"><label>Quantity *</label><input id="prod-qty" type="number" min="1" placeholder="500"/></div>
+        <div class="field"><label>Ref. Price (USD)</label><input id="prod-refprice" type="number" step="0.01" placeholder="3.50"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Plating</label><input id="prod-plating" placeholder="e.g. Gold 3mic"/></div>
+        <div class="field"><label>Tool Type</label>
+          <select id="prod-tool"><option value="">No tool</option><option value="black_tool">Black Tool</option><option value="blue_tool">Blue Tool</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Has Sample?</label>
+          <select id="prod-sample"><option value="false">No</option><option value="true">Yes</option></select>
+        </div>
+        <div class="field"><label>Discontinued?</label>
+          <select id="prod-discontinued"><option value="false">No</option><option value="true">Yes — Out of line</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Image URL</label><input id="prod-img" placeholder="https://…"/></div>
+      <div class="field"><label>Internal Notes</label><textarea id="prod-notes" placeholder="Notes for internal use…" style="min-height:50px;"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import CSV -->
+<div class="modal-overlay" id="modal-csv">
+  <div class="modal modal-wide">
+    <div class="modal-head"><h2>Import Products via CSV</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-csv')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--muted);line-height:1.7;">CSV must have these columns (header row required):<br>
+      <code style="color:#fff;font-size:11px;">sku, name, category, quantity, reference_price, plating, tool_type, has_sample, description</code></p>
+      <div class="dropzone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
+        Drop CSV here or click to browse
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="handleCsvFile(this.files[0])"/>
+      </div>
+      <div id="csv-preview-wrap" style="display:none;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;" id="csv-summary"></div>
+        <div class="csv-preview" id="csv-preview"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-csv')">Cancel</button>
+      <button class="btn btn-primary" id="csv-import-btn" onclick="importCsv()" style="display:none;">Import Products</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Quote -->
+<div class="modal-overlay" id="modal-edit-quote">
+  <div class="modal">
+    <div class="modal-head"><h2>Edit Quote</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-edit-quote')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="eq-id"/>
+      <div id="eq-info" style="font-size:12px;color:var(--muted);margin-bottom:4px;"></div>
+      <div class="field"><label>Status</label>
+        <select id="eq-status">
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+          <option value="counter">Counter</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Unit Price (USD)</label><input id="eq-price" type="number" step="0.01" placeholder="3.20"/></div>
+        <div class="field"><label>Lead Time (days)</label><input id="eq-lead" type="number" placeholder="60"/></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="eq-notes" placeholder="Any notes…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-quote')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuote()">Save Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invite Supplier to Process -->
+<div class="modal-overlay" id="modal-invite-supplier">
+  <div class="modal">
+    <div class="modal-head"><h2>Invite Supplier</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invite-supplier')">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Supplier</label><select id="invite-supplier-id"></select></div>
+      <div class="field"><label>Access Password *</label><input id="invite-password" placeholder="e.g. yuki2025"/></div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.6;">This password gives the supplier access to this specific process.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-invite-supplier')">Cancel</button>
+      <button class="btn btn-primary" onclick="inviteSupplier()">Invite Supplier</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
-<!-- ─────────────────────────────────────────────
-  SCRIPT
-───────────────────────────────────────────── -->
 <script>
-// ══════════════════════════════════════════════
-// ⚙️  CONFIGURE YOUR SUPABASE CREDENTIALS HERE
-// ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://sbmkfvhcatvgahqoaqum.supabase.co';
+// ══════════════════════════════════════
+// ⚙️  CONFIGURE SUPABASE HERE
+// ══════════════════════════════════════
+const SUPABASE_URL     = 'https://sbmkfvhcatvgahqoaqum.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNibWtmdmhjYXR2Z2FocW9hcXVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODk0NzksImV4cCI6MjA4ODc2NTQ3OX0.a0MNtu3_dgG6rfAtK7VdTAPswDqwYRebYayTazvqBtI';
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════
 
 const { createClient } = supabase;
 let db = null;
-let currentView = 'dashboard';
+let allCategories = [];
+let allProductsMaster = [];
+let activeProductFilter = 'all';
 let activeProcessId = null;
-let supplierSession = null; // { supplier, process_supplier }
+let supplierSession = null;
+let csvParsedRows = [];
 
-// ── Init ──
+// ── Init ──────────────────────────────
 function init() {
-  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
     document.getElementById('config-banner').style.display = 'block';
     return;
   }
-  document.getElementById('config-banner').style.display = 'none';
   db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   checkSession();
 }
 
 async function checkSession() {
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    showAdminApp();
-    loadAll();
-  } else {
-    showLoginScreen();
-  }
+  const { data:{ session } } = await db.auth.getSession();
+  if (session) { showAdminApp(); loadAll(); }
+  else showLoginScreen();
 }
 
-// ── Login ──
+// ── Auth ──────────────────────────────
 function showLoginScreen() {
   document.getElementById('login-screen').classList.add('active');
   document.getElementById('app').style.display = 'none';
 }
-
 function showAdminLogin() {
   document.getElementById('login-screen').classList.remove('active');
   openModal('modal-admin-login');
 }
-
 function showAdminApp() {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
 }
-
 async function adminLogin() {
-  const email = document.getElementById('admin-email').value.trim();
-  const pass = document.getElementById('admin-pass').value;
-  const { error } = await db.auth.signInWithPassword({ email, password: pass });
+  const { error } = await db.auth.signInWithPassword({
+    email: document.getElementById('admin-email').value.trim(),
+    password: document.getElementById('admin-pass').value
+  });
   if (error) { toast('Login failed: ' + error.message, 'error'); return; }
   closeModal('modal-admin-login');
   showAdminApp();
   loadAll();
-  toast('Welcome back!', 'success');
+  toast('Welcome!', 'success');
 }
+async function adminLogout() { await db.auth.signOut(); showLoginScreen(); }
 
-async function adminLogout() {
-  await db.auth.signOut();
-  showLoginScreen();
-}
-
-// ── Supplier Portal ──
+// ── Supplier Portal ───────────────────
 async function supplierLogin() {
   const password = document.getElementById('supplier-password-input').value.trim();
   if (!password) return;
-
-  const { data, error } = await db
-    .from('process_suppliers')
+  const { data, error } = await db.from('process_suppliers')
     .select('*, supplier:suppliers(*), process:processes(*)')
-    .eq('access_password', password)
-    .eq('is_active', true)
-    .single();
-
-  if (error || !data) {
-    toast('Invalid password. Please check with your contact.', 'error');
-    return;
-  }
-
+    .eq('access_password', password).eq('is_active', true).single();
+  if (error || !data) { toast('Invalid password.', 'error'); return; }
   supplierSession = data;
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('supplier-portal').classList.add('active');
   document.getElementById('portal-supplier-name').textContent = data.supplier.name;
   document.getElementById('portal-process-name').textContent = data.process.name;
-  if (data.process.description)
-    document.getElementById('portal-process-desc').textContent = data.process.description;
-
+  if (data.process.description) document.getElementById('portal-process-desc').textContent = data.process.description;
   await loadSupplierPortal();
 }
-
 function supplierLogout() {
   supplierSession = null;
   document.getElementById('supplier-portal').classList.remove('active');
   document.getElementById('supplier-password-input').value = '';
   showLoginScreen();
 }
-
 async function loadSupplierPortal() {
-  const { data: products } = await db
-    .from('products')
-    .select('*')
-    .eq('process_id', supplierSession.process_id);
-
-  // Load existing quotes for this supplier
-  const { data: quotes } = await db
-    .from('quotes')
-    .select('*')
-    .eq('process_id', supplierSession.process_id)
-    .eq('supplier_id', supplierSession.supplier_id);
-
-  const quoteMap = {};
-  (quotes || []).forEach(q => quoteMap[q.product_id] = q);
-
+  const { data: products } = await db.from('products').select('*').eq('process_id', supplierSession.process_id);
+  const { data: quotes } = await db.from('quotes').select('*')
+    .eq('process_id', supplierSession.process_id).eq('supplier_id', supplierSession.supplier_id);
+  const qMap = {};
+  (quotes || []).forEach(q => qMap[q.product_id] = q);
   const container = document.getElementById('portal-products-list');
-  if (!products || products.length === 0) {
-    container.innerHTML = '<div class="empty">No products in this process yet.</div>';
-    return;
-  }
-
+  if (!products || !products.length) { container.innerHTML = '<div class="empty">No products in this process yet.</div>'; return; }
   container.innerHTML = products.map(p => {
-    const q = quoteMap[p.id];
-    const status = q ? q.status : 'pending';
-    const badge = `<span class="badge badge-${status}">${status}</span>`;
-
-    return `
-    <div class="product-quote-card" id="pqc-${p.id}">
+    const q = qMap[p.id]; const status = q ? q.status : 'pending';
+    return `<div class="pqc" id="pqc-${p.id}">
       <div class="pqc-head">
-        <div class="pqc-info">
-          <h3>${p.sku ? `[${p.sku}] ` : ''}${p.name}</h3>
-          <p>${p.description || ''}</p>
-        </div>
-        ${badge}
+        <div class="pqc-info"><h3>${p.sku ? `[${p.sku}] ` : ''}${p.name}</h3><p>${p.description||''}</p></div>
+        <span class="badge badge-${status}">${status}</span>
       </div>
       <div class="pqc-body">
         <div class="pqc-meta">
           <div class="pqc-meta-item">Quantity<span>${p.quantity.toLocaleString()} pcs</span></div>
-          ${p.plating ? `<div class="pqc-meta-item">Plating<span>${p.plating}</span></div>` : ''}
-          ${p.tool_type ? `<div class="pqc-meta-item">Tool<span>${p.tool_type.replace('_',' ')}</span></div>` : ''}
-          ${p.reference_price ? `<div class="pqc-meta-item">Ref. Price<span>USD ${parseFloat(p.reference_price).toFixed(2)}</span></div>` : ''}
-          <div class="pqc-meta-item">Sample<span>${p.has_sample ? '✓ Available' : '✗ None'}</span></div>
+          ${p.plating?`<div class="pqc-meta-item">Plating<span>${p.plating}</span></div>`:''}
+          ${p.tool_type?`<div class="pqc-meta-item">Tool<span>${p.tool_type.replace('_',' ')}</span></div>`:''}
+          ${p.reference_price?`<div class="pqc-meta-item">Ref. Price<span>USD ${parseFloat(p.reference_price).toFixed(2)}</span></div>`:''}
+          <div class="pqc-meta-item">Sample<span>${p.has_sample?'✓ Available':'✗ None'}</span></div>
         </div>
         <div class="pqc-actions">
           <button class="btn btn-primary btn-sm" onclick="submitQuote('${p.id}','accepted')">✓ Accept</button>
-          <button class="btn btn-ghost btn-sm" onclick="toggleCounterForm('${p.id}')">↺ Counter-Proposal</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleCounter('${p.id}')">↺ Counter</button>
           <button class="btn btn-danger btn-sm" onclick="submitQuote('${p.id}','rejected')">✕ Reject</button>
         </div>
-        <div class="quote-response-form" id="counter-form-${p.id}">
+        <div class="counter-form" id="counter-form-${p.id}">
           <div class="field-row">
-            <div class="field">
-              <label>Your Price (USD/unit)</label>
-              <input type="number" step="0.01" id="counter-price-${p.id}" placeholder="3.20" value="${q && q.counter_price ? q.counter_price : ''}" />
-            </div>
-            <div class="field">
-              <label>Lead Time (days)</label>
-              <input type="number" id="counter-lead-${p.id}" placeholder="45" value="${q && q.lead_time_days ? q.lead_time_days : ''}" />
-            </div>
+            <div class="field"><label>Your Price (USD/unit)</label><input type="number" step="0.01" id="cp-${p.id}" placeholder="3.20" value="${q&&q.counter_price?q.counter_price:''}"/></div>
+            <div class="field"><label>Lead Time (days)</label><input type="number" id="cl-${p.id}" placeholder="45" value="${q&&q.lead_time_days?q.lead_time_days:''}"/></div>
           </div>
-          <div class="field">
-            <label>Notes / Observations</label>
-            <textarea id="counter-notes-${p.id}" placeholder="Any conditions, material differences, MOQ changes...">${q && q.counter_notes ? q.counter_notes : ''}</textarea>
-          </div>
+          <div class="field"><label>Notes</label><textarea id="cn-${p.id}" placeholder="Any conditions…">${q&&q.counter_notes?q.counter_notes:''}</textarea></div>
           <div style="display:flex;justify-content:flex-end;">
-            <button class="btn btn-primary btn-sm" onclick="submitCounter('${p.id}')">Submit Counter-Proposal →</button>
+            <button class="btn btn-primary btn-sm" onclick="submitCounter('${p.id}')">Submit Counter →</button>
           </div>
         </div>
-        ${q && q.unit_price ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);">Your last price: <span style="color:var(--accent);">USD ${parseFloat(q.unit_price).toFixed(2)}</span></div>` : ''}
+        ${q&&q.unit_price?`<div style="margin-top:8px;font-size:11px;color:var(--muted);">Your last price: <span style="color:#fff;">USD ${parseFloat(q.unit_price).toFixed(2)}</span></div>`:''}
       </div>
     </div>`;
   }).join('');
 }
-
-function toggleCounterForm(productId) {
-  const form = document.getElementById(`counter-form-${productId}`);
-  form.classList.toggle('open');
-}
-
+function toggleCounter(pid) { document.getElementById(`counter-form-${pid}`).classList.toggle('open'); }
 async function submitQuote(productId, status) {
-  const upsertData = {
-    process_id: supplierSession.process_id,
-    supplier_id: supplierSession.supplier_id,
-    product_id: productId,
-    status,
-    responded_at: new Date().toISOString()
-  };
-
-  const { error } = await db.from('quotes').upsert(upsertData, {
-    onConflict: 'process_id,supplier_id,product_id'
-  });
-
-  if (error) { toast('Error saving response.', 'error'); return; }
-  toast(status === 'accepted' ? 'Product accepted!' : 'Product rejected.', 'success');
+  const { error } = await db.from('quotes').upsert({
+    process_id:supplierSession.process_id, supplier_id:supplierSession.supplier_id,
+    product_id:productId, status, responded_at:new Date().toISOString()
+  }, { onConflict:'process_id,supplier_id,product_id' });
+  if (error) { toast('Error saving.', 'error'); return; }
+  toast(status==='accepted'?'Accepted!':'Rejected.', 'success');
   await loadSupplierPortal();
 }
-
 async function submitCounter(productId) {
-  const price = document.getElementById(`counter-price-${productId}`).value;
-  const lead = document.getElementById(`counter-lead-${productId}`).value;
-  const notes = document.getElementById(`counter-notes-${productId}`).value;
-
-  const upsertData = {
-    process_id: supplierSession.process_id,
-    supplier_id: supplierSession.supplier_id,
-    product_id: productId,
-    status: 'counter',
-    counter_price: price ? parseFloat(price) : null,
-    unit_price: price ? parseFloat(price) : null,
-    lead_time_days: lead ? parseInt(lead) : null,
-    counter_notes: notes,
-    responded_at: new Date().toISOString()
-  };
-
-  const { error } = await db.from('quotes').upsert(upsertData, {
-    onConflict: 'process_id,supplier_id,product_id'
-  });
-
-  if (error) { toast('Error saving counter-proposal.', 'error'); return; }
+  const price = document.getElementById(`cp-${productId}`).value;
+  const lead  = document.getElementById(`cl-${productId}`).value;
+  const notes = document.getElementById(`cn-${productId}`).value;
+  const { error } = await db.from('quotes').upsert({
+    process_id:supplierSession.process_id, supplier_id:supplierSession.supplier_id,
+    product_id:productId, status:'counter',
+    unit_price:price?parseFloat(price):null, counter_price:price?parseFloat(price):null,
+    lead_time_days:lead?parseInt(lead):null, counter_notes:notes,
+    responded_at:new Date().toISOString()
+  }, { onConflict:'process_id,supplier_id,product_id' });
+  if (error) { toast('Error saving.', 'error'); return; }
   toast('Counter-proposal submitted!', 'success');
   await loadSupplierPortal();
 }
 
-// ── Admin Data Loading ──
+// ── Admin Data ────────────────────────
 async function loadAll() {
+  await loadCategories();
   loadDashboard();
   loadSuppliers();
 }
 
-async function loadDashboard() {
-  const { data: processes } = await db.from('processes').select('*').order('created_at', { ascending: false });
-  const { data: suppliers } = await db.from('suppliers').select('*');
-  const { data: quotes } = await db.from('quotes').select('*');
-
-  const openProcs = (processes || []).filter(p => p.status === 'open').length;
-  document.getElementById('stat-processes').textContent = openProcs;
-  document.getElementById('stat-suppliers').textContent = (suppliers || []).length;
-  const pending = (quotes || []).filter(q => q.status === 'pending').length;
-  const responded = (quotes || []).filter(q => q.status !== 'pending').length;
-  document.getElementById('stat-pending').textContent = pending;
-  document.getElementById('stat-responded').textContent = responded;
-
-  const tbody = document.getElementById('dashboard-processes-table');
-  if (!processes || processes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">No processes yet. Create your first one!</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = processes.map(p => `
-    <tr>
-      <td>${p.name}</td>
-      <td><span class="badge badge-${p.status}">${p.status}</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td>${new Date(p.created_at).toLocaleDateString()}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openProcess('${p.id}')">View →</button></td>
-    </tr>
-  `).join('');
-}
-
-async function loadSuppliers() {
-  const { data } = await db.from('suppliers').select('*').order('name');
-  const tbody = document.getElementById('suppliers-table');
-  if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">No suppliers yet.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = data.map(s => `
-    <tr>
-      <td>${s.name}</td>
-      <td>${s.contact_name || '—'}</td>
-      <td>${s.email || '—'}</td>
-      <td>${new Date(s.created_at).toLocaleDateString()}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${s.id}')">Delete</button></td>
-    </tr>
-  `).join('');
-}
-
-async function loadProcesses() {
-  const { data } = await db.from('processes').select('*').order('created_at', { ascending: false });
-  const container = document.getElementById('processes-list');
-  if (!data || data.length === 0) {
-    container.innerHTML = `
-      <div class="empty" style="text-align:center;padding:64px;">
-        <p style="margin-bottom:16px;">No processes yet.</p>
-        <button class="btn btn-primary" onclick="openModal('modal-new-process')">+ Create First Process</button>
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = data.map(p => `
-    <div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="openProcess('${p.id}')">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-family:'Questrial',sans-serif;font-size:13px;color:#ffffff;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">${p.name}</div>
-          <div style="font-size:11px;color:var(--muted);">${p.description || 'No description'}</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="badge badge-${p.status}">${p.status}</span>
-          <span style="color:var(--muted);font-size:20px;">→</span>
-        </div>
-      </div>
-    </div>
-  `).join('') + `
-    <div style="margin-top:16px;">
-      <button class="btn btn-primary" onclick="openModal('modal-new-process')">+ New Process</button>
-    </div>`;
-}
-
-async function openProcess(id) {
-  activeProcessId = id;
-  showView('quotes');
-
-  const { data: process } = await db.from('processes').select('*').eq('id', id).single();
-  const { data: products } = await db.from('products').select('*').eq('process_id', id).order('created_at');
-  const { data: psuppliers } = await db
-    .from('process_suppliers')
-    .select('*, supplier:suppliers(*)')
-    .eq('process_id', id);
-  const { data: quotes } = await db.from('quotes').select('*, product:products(name,sku), supplier:suppliers(name)').eq('process_id', id);
-
-  document.getElementById('topbar-title').textContent = process.name;
-
-  // Build quotes map
-  const quoteMap = {};
-  (quotes || []).forEach(q => {
-    if (!quoteMap[q.product_id]) quoteMap[q.product_id] = {};
-    quoteMap[q.product_id][q.supplier_id] = q;
-  });
-
-  const suppliers = (psuppliers || []).map(ps => ps.supplier);
-
-  const container = document.getElementById('quotes-content');
-  container.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
-      <span class="badge badge-${process.status}">${process.status}</span>
-      <button class="btn btn-primary btn-sm" onclick="openAddProductModal('${id}')">+ Add Product</button>
-      <button class="btn btn-ghost btn-sm" onclick="openInviteSupplierModal('${id}')">+ Invite Supplier</button>
-      <button class="btn btn-ghost btn-sm" onclick="changeProcessStatus('${id}','${process.status}')">Change Status</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-      <div>
-        <div class="section-title">Products (${(products||[]).length})</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Plating</th><th>Tool</th><th>Sample</th></tr></thead>
-            <tbody>
-              ${(products||[]).length === 0 ? '<tr><td colspan="6" class="empty">No products yet.</td></tr>' :
-              (products||[]).map(p => `
-                <tr>
-                  <td style="color:var(--muted)">${p.sku||'—'}</td>
-                  <td>${p.name}</td>
-                  <td>${p.quantity.toLocaleString()}</td>
-                  <td>${p.plating||'—'}</td>
-                  <td>${p.tool_type ? p.tool_type.replace('_',' ') : '—'}</td>
-                  <td>${p.has_sample ? '✓' : '✗'}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div>
-        <div class="section-title">Invited Suppliers</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Supplier</th><th>Password</th><th>Active</th></tr></thead>
-            <tbody>
-              ${(psuppliers||[]).length === 0 ? '<tr><td colspan="3" class="empty">No suppliers invited.</td></tr>' :
-              (psuppliers||[]).map(ps => `
-                <tr>
-                  <td>${ps.supplier.name}</td>
-                  <td><code style="background:var(--surface2);padding:2px 6px;border-radius:3px;font-size:11px;">${ps.access_password}</code></td>
-                  <td>${ps.is_active ? '<span class="badge badge-open">Yes</span>' : '<span class="badge badge-closed">No</span>'}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-title">Quote Matrix</div>
-    ${buildQuoteMatrix(products||[], suppliers, quoteMap)}
-  `;
-}
-
-function buildQuoteMatrix(products, suppliers, quoteMap) {
-  if (products.length === 0 || suppliers.length === 0) {
-    return '<div class="empty">Add products and invite suppliers to see the quote matrix.</div>';
-  }
-
-  const headers = suppliers.map(s => `<th>${s.name}</th>`).join('');
-
-  const rows = products.map(p => {
-    const cells = suppliers.map(s => {
-      const q = quoteMap[p.id] && quoteMap[p.id][s.id];
-      if (!q || q.status === 'pending') return `<td><span class="badge badge-pending">Pending</span></td>`;
-      if (q.status === 'rejected') return `<td><span class="badge badge-rejected">Rejected</span></td>`;
-      if (q.status === 'accepted') return `<td><span class="badge badge-accepted">✓ Accepted${q.unit_price ? `<br><small style="font-size:10px;">USD ${parseFloat(q.unit_price).toFixed(2)}</small>` : ''}</span></td>`;
-      if (q.status === 'counter') return `<td><span class="badge badge-counter">Counter<br><small style="font-size:10px;">USD ${q.counter_price ? parseFloat(q.counter_price).toFixed(2) : '?'}</small></span></td>`;
-      return `<td>—</td>`;
-    }).join('');
-
-    return `<tr><td><b>${p.sku ? `[${p.sku}] ` : ''}${p.name}</b><br><small style="color:var(--muted);">${p.quantity.toLocaleString()} pcs</small></td>${cells}</tr>`;
-  }).join('');
-
-  return `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Product</th>${headers}</tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-}
-
-// ── CRUD Operations ──
-async function addSupplier() {
-  const name = document.getElementById('s-name').value.trim();
-  if (!name) { toast('Supplier name is required.', 'error'); return; }
-  const { error } = await db.from('suppliers').insert({
-    name,
-    contact_name: document.getElementById('s-contact').value.trim() || null,
-    email: document.getElementById('s-email').value.trim() || null
-  });
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  closeModal('modal-add-supplier');
-  document.getElementById('s-name').value = '';
-  document.getElementById('s-contact').value = '';
-  document.getElementById('s-email').value = '';
-  loadSuppliers();
-  toast('Supplier added!', 'success');
-}
-
-async function deleteSupplier(id) {
-  if (!confirm('Delete this supplier?')) return;
-  const { error } = await db.from('suppliers').delete().eq('id', id);
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  loadSuppliers();
-  toast('Supplier deleted.', 'success');
-}
-
-async function createProcess() {
-  const name = document.getElementById('p-name').value.trim();
-  if (!name) { toast('Process name is required.', 'error'); return; }
-  const { error } = await db.from('processes').insert({
-    name,
-    description: document.getElementById('p-desc').value.trim() || null
-  });
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  closeModal('modal-new-process');
-  document.getElementById('p-name').value = '';
-  document.getElementById('p-desc').value = '';
-  loadProcesses();
-  loadDashboard();
-  toast('Process created!', 'success');
-}
-
-function openAddProductModal(processId) {
-  activeProcessId = processId;
-  openModal('modal-add-product');
-}
-
-async function addProduct() {
-  const name = document.getElementById('prod-name').value.trim();
-  const qty = parseInt(document.getElementById('prod-qty').value);
-  if (!name || !qty) { toast('Name and quantity are required.', 'error'); return; }
-
-  const { error } = await db.from('products').insert({
-    process_id: activeProcessId,
-    sku: document.getElementById('prod-sku').value.trim() || null,
-    name,
-    description: document.getElementById('prod-desc').value.trim() || null,
-    quantity: qty,
-    reference_price: document.getElementById('prod-refprice').value || null,
-    plating: document.getElementById('prod-plating').value.trim() || null,
-    tool_type: document.getElementById('prod-tool').value || null,
-    has_sample: document.getElementById('prod-sample').value === 'true',
-    image_url: document.getElementById('prod-img').value.trim() || null,
-    notes: document.getElementById('prod-notes').value.trim() || null
-  });
-
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  closeModal('modal-add-product');
-  // Reset fields
-  ['prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-plating','prod-img','prod-notes'].forEach(id => document.getElementById(id).value = '');
-  openProcess(activeProcessId);
-  toast('Product added!', 'success');
-}
-
-async function openInviteSupplierModal(processId) {
-  activeProcessId = processId;
-  const { data } = await db.from('suppliers').select('*').order('name');
-  const select = document.getElementById('invite-supplier-id');
-  select.innerHTML = (data || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  openModal('modal-invite-supplier');
-}
-
-async function inviteSupplier() {
-  const supplierId = document.getElementById('invite-supplier-id').value;
-  const password = document.getElementById('invite-password').value.trim();
-  if (!password) { toast('Password is required.', 'error'); return; }
-
-  const { error } = await db.from('process_suppliers').upsert({
-    process_id: activeProcessId,
-    supplier_id: supplierId,
-    access_password: password,
-    is_active: true
-  }, { onConflict: 'process_id,supplier_id' });
-
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  closeModal('modal-invite-supplier');
-  document.getElementById('invite-password').value = '';
-
-  // Auto-create pending quotes for all products
-  const { data: products } = await db.from('products').select('id').eq('process_id', activeProcessId);
-  if (products && products.length > 0) {
-    const quotesToInsert = products.map(p => ({
-      process_id: activeProcessId,
-      supplier_id: supplierId,
-      product_id: p.id,
-      status: 'pending'
-    }));
-    await db.from('quotes').upsert(quotesToInsert, { onConflict: 'process_id,supplier_id,product_id', ignoreDuplicates: true });
-  }
-
-  openProcess(activeProcessId);
-  toast('Supplier invited!', 'success');
-}
-
-async function changeProcessStatus(id, current) {
-  const statuses = ['open', 'closed', 'finalized'];
-  const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
-  await db.from('processes').update({ status: next }).eq('id', id);
-  openProcess(id);
-  toast(`Process status: ${next}`, 'success');
-}
-
-// ── UI Helpers ──
-function showView(v) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('nav a').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('nav-' + v).classList.add('active');
-  currentView = v;
-
-  const titles = { dashboard: 'Dashboard', processes: 'Processes', suppliers: 'Suppliers', quotes: 'Quotes' };
-  document.getElementById('topbar-title').textContent = titles[v] || v;
-
-  const actions = document.getElementById('topbar-actions');
-  actions.innerHTML = '';
-
-  if (v === 'processes') {
-    actions.innerHTML = '<button class="btn btn-primary btn-sm" onclick="openModal(\'modal-new-process\')">+ New Process</button>';
-    loadProcesses();
-  }
-  if (v === 'suppliers') {
-    actions.innerHTML = '<button class="btn btn-primary btn-sm" onclick="openModal(\'modal-add-supplier\')">+ Add Supplier</button>';
-  }
-  if (v === 'dashboard') loadDashboard();
-}
-
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
-});
-
-function toast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
-  setTimeout(() => el.classList.remove('show', type), 3000);
-}
-
-
-// ── Global state ──
-let allCategories = [];
-let allProductsMaster = [];
-let activeProductFilter = 'all';
-
-// ── Load categories ──
 async function loadCategories() {
   const { data } = await db.from('categories').select('*').order('name');
   allCategories = data || [];
-
-  // Populate product modal select
   const sel = document.getElementById('prod-category');
-  if (sel) {
-    sel.innerHTML = '<option value="">— Select category —</option>' +
-      allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  }
-
-  // Populate supplier category checkboxes
-  const container = document.getElementById('s-categories');
-  if (container) {
-    container.innerHTML = allCategories.map(c =>
-      `<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;cursor:pointer;">
-        <input type="checkbox" value="${c.id}" style="accent-color:#fff;width:14px;height:14px;" />
-        ${c.name}
-      </label>`
-    ).join('');
-  }
+  if (sel) sel.innerHTML = '<option value="">— Select category —</option>' +
+    allCategories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  refreshCategoryCheckboxes();
 }
 
-// ── Products master view ──
-async function loadProductsMaster() {
-  const { data } = await db
-    .from('products')
-    .select('*, category:categories(name), process:processes(name)')
-    .order('created_at', { ascending: false });
+function refreshCategoryCheckboxes() {
+  const container = document.getElementById('s-categories');
+  if (!container) return;
+  container.innerHTML = allCategories.map(c =>
+    `<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;cursor:pointer;">
+      <input type="checkbox" value="${c.id}" class="s-cat-cb" style="accent-color:#fff;width:14px;height:14px;"/> ${c.name}
+    </label>`).join('');
+}
 
-  allProductsMaster = data || [];
+async function loadDashboard() {
+  const [{ data: procs }, { data: sups }, { data: quotes }] = await Promise.all([
+    db.from('processes').select('*').order('created_at',{ascending:false}),
+    db.from('suppliers').select('*'),
+    db.from('quotes').select('*')
+  ]);
+  document.getElementById('stat-processes').textContent = (procs||[]).filter(p=>p.status==='open').length;
+  document.getElementById('stat-suppliers').textContent = (sups||[]).length;
+  document.getElementById('stat-pending').textContent   = (quotes||[]).filter(q=>q.status==='pending').length;
+  document.getElementById('stat-responded').textContent = (quotes||[]).filter(q=>q.status!=='pending').length;
+  const tbody = document.getElementById('dashboard-processes-table');
+  if (!procs || !procs.length) { tbody.innerHTML='<tr><td colspan="4" class="empty">No processes yet.</td></tr>'; return; }
+  tbody.innerHTML = procs.map(p=>`<tr>
+    <td>${p.name}</td>
+    <td><span class="badge badge-${p.status}">${p.status}</span></td>
+    <td>${new Date(p.created_at).toLocaleDateString()}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openProcess('${p.id}')">View →</button></td>
+  </tr>`).join('');
+}
 
-  // For each product, get which suppliers have a sample
-  if (allProductsMaster.length > 0) {
-    const productIds = allProductsMaster.map(p => p.id);
-    const { data: samples } = await db
-      .from('product_samples')
-      .select('product_id, supplier:suppliers(name)')
-      .in('product_id', productIds);
+async function loadSuppliers() {
+  const { data } = await db.from('suppliers')
+    .select('*, supplier_categories(category:categories(name))').order('name');
+  const tbody = document.getElementById('suppliers-table');
+  if (!data || !data.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No suppliers yet.</td></tr>'; return; }
+  tbody.innerHTML = data.map(s => {
+    const cats = (s.supplier_categories||[]).map(sc=>`<span class="tag">${sc.category.name}</span>`).join('')||'<span style="color:var(--muted)">—</span>';
+    return `<tr>
+      <td>${s.name}</td><td>${s.contact_name||'—'}</td><td>${s.email||'—'}</td>
+      <td>${cats}</td>
+      <td>${new Date(s.created_at).toLocaleDateString()}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditSupplier('${s.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSupplier('${s.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
 
-    const sampleMap = {};
-    (samples || []).forEach(s => {
-      if (!sampleMap[s.product_id]) sampleMap[s.product_id] = [];
-      sampleMap[s.product_id].push(s.supplier.name);
-    });
-    allProductsMaster = allProductsMaster.map(p => ({
-      ...p,
-      sampleSuppliers: sampleMap[p.id] || []
-    }));
+async function loadProcesses() {
+  const { data } = await db.from('processes').select('*').order('created_at',{ascending:false});
+  const container = document.getElementById('processes-list');
+  if (!data || !data.length) {
+    container.innerHTML=`<div class="empty" style="padding:60px;text-align:center;"><p style="margin-bottom:16px;">No processes yet.</p><button class="btn btn-primary" onclick="openNewProcess()">+ Create First Process</button></div>`;
+    return;
   }
+  container.innerHTML = data.map(p=>`
+    <div class="card" style="margin-bottom:11px;cursor:pointer;" onclick="openProcess('${p.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:#fff;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">${p.name}</div>
+          <div style="font-size:11px;color:var(--muted);">${p.description||'No description'}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="badge badge-${p.status}">${p.status}</span>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEditProcess('${p.id}')">Edit</button>
+          <span style="color:var(--muted);font-size:18px;">→</span>
+        </div>
+      </div>
+    </div>`).join('') +
+    `<div style="margin-top:14px;"><button class="btn btn-primary" onclick="openNewProcess()">+ New Process</button></div>`;
+}
 
+async function loadProductsMaster() {
+  const { data } = await db.from('products')
+    .select('*, category:categories(name), process:processes(name)')
+    .order('created_at',{ascending:false});
+  allProductsMaster = data || [];
+  if (allProductsMaster.length) {
+    const ids = allProductsMaster.map(p=>p.id);
+    const { data: samples } = await db.from('product_samples')
+      .select('product_id, supplier:suppliers(name)').in('product_id', ids);
+    const sMap = {};
+    (samples||[]).forEach(s=>{ if(!sMap[s.product_id]) sMap[s.product_id]=[]; sMap[s.product_id].push(s.supplier.name); });
+    allProductsMaster = allProductsMaster.map(p=>({...p, sampleSuppliers: sMap[p.id]||[]}));
+  }
   renderProductsTable();
 }
 
 function filterProducts(cat, btn) {
   activeProductFilter = cat;
-  document.querySelectorAll('.prod-filter').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderProductsTable();
 }
 
 function renderProductsTable() {
-  const search = (document.getElementById('prod-search')?.value || '').toLowerCase();
+  const search = (document.getElementById('prod-search')?.value||'').toLowerCase();
   let rows = allProductsMaster;
-
-  if (activeProductFilter !== 'all') {
-    rows = rows.filter(p => p.category?.name === activeProductFilter);
-  }
-  if (search) {
-    rows = rows.filter(p =>
-      (p.sku || '').toLowerCase().includes(search) ||
-      p.name.toLowerCase().includes(search)
-    );
-  }
-
+  if (activeProductFilter === '_discontinued') rows = rows.filter(p=>p.discontinued);
+  else if (activeProductFilter !== 'all') rows = rows.filter(p=>p.category?.name===activeProductFilter);
+  if (search) rows = rows.filter(p=>(p.sku||'').toLowerCase().includes(search)||p.name.toLowerCase().includes(search));
   const tbody = document.getElementById('products-master-table');
   if (!tbody) return;
-
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">No products found.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(p => {
-    const samplers = p.sampleSuppliers && p.sampleSuppliers.length > 0
-      ? p.sampleSuppliers.map(s =>
-          `<span style="background:#1a1a1a;border:1px solid #333;padding:2px 8px;border-radius:20px;font-size:10px;margin-right:4px;">${s}</span>`
-        ).join('')
-      : '<span style="color:var(--muted);font-size:11px;">—</span>';
-
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="9" class="empty">No products found.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(p=>{
+    const samplers = p.sampleSuppliers?.length
+      ? p.sampleSuppliers.map(s=>`<span class="tag">${s}</span>`).join('') : '<span style="color:var(--muted)">—</span>';
+    const discBadge = p.discontinued ? '<span class="badge badge-discontinued">Discontinued</span>' : '<span style="color:var(--muted);font-size:11px;">Active</span>';
     return `<tr>
-      <td style="color:var(--muted)">${p.sku || '—'}</td>
+      <td style="color:var(--muted)">${p.sku||'—'}</td>
       <td>${p.name}</td>
-      <td>${p.category ? `<span class="badge" style="background:#111;border:1px solid #333;color:#fff;">${p.category.name}</span>` : '—'}</td>
-      <td style="color:var(--muted);font-size:11px;">${p.process?.name || '—'}</td>
+      <td>${p.category?`<span class="tag">${p.category.name}</span>`:'—'}</td>
+      <td style="color:var(--muted);font-size:11px;">${p.process?.name||'—'}</td>
       <td>${p.quantity.toLocaleString()}</td>
-      <td style="color:var(--muted)">${p.plating || '—'}</td>
+      <td style="color:var(--muted)">${p.plating||'—'}</td>
       <td>${samplers}</td>
+      <td>${discBadge}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openEditProduct('${p.id}')">Edit</button></td>
     </tr>`;
   }).join('');
 }
 
-// ── Override addSupplier to save categories ──
-const _origAddSupplier = addSupplier;
-addSupplier = async function() {
-  const name = document.getElementById('s-name').value.trim();
-  if (!name) { toast('Supplier name is required.', 'error'); return; }
-
-  const { data: supplier, error } = await db.from('suppliers').insert({
-    name,
-    contact_name: document.getElementById('s-contact').value.trim() || null,
-    email: document.getElementById('s-email').value.trim() || null
-  }).select().single();
-
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-
-  // Save selected categories
-  const checked = [...document.querySelectorAll('#s-categories input:checked')];
-  if (checked.length > 0) {
-    const catRows = checked.map(cb => ({ supplier_id: supplier.id, category_id: cb.value }));
-    await db.from('supplier_categories').insert(catRows);
-  }
-
-  closeModal('modal-add-supplier');
+// ── Supplier CRUD ─────────────────────
+function openAddSupplier() {
+  document.getElementById('modal-supplier-title').textContent = 'ADD SUPPLIER';
+  document.getElementById('s-id').value = '';
   document.getElementById('s-name').value = '';
   document.getElementById('s-contact').value = '';
   document.getElementById('s-email').value = '';
-  document.querySelectorAll('#s-categories input').forEach(cb => cb.checked = false);
-  loadSuppliers();
-  toast('Supplier added!', 'success');
-};
+  refreshCategoryCheckboxes();
+  openModal('modal-supplier');
+}
 
-// ── Override addProduct to save category_id ──
-const _origAddProduct = addProduct;
-addProduct = async function() {
-  const name = document.getElementById('prod-name').value.trim();
-  const qty = parseInt(document.getElementById('prod-qty').value);
-  if (!name || !qty) { toast('Name and quantity are required.', 'error'); return; }
+async function openEditSupplier(id) {
+  const { data: s } = await db.from('suppliers')
+    .select('*, supplier_categories(category_id)').eq('id', id).single();
+  document.getElementById('modal-supplier-title').textContent = 'EDIT SUPPLIER';
+  document.getElementById('s-id').value = s.id;
+  document.getElementById('s-name').value = s.name;
+  document.getElementById('s-contact').value = s.contact_name || '';
+  document.getElementById('s-email').value = s.email || '';
+  refreshCategoryCheckboxes();
+  const selectedCats = (s.supplier_categories||[]).map(sc=>sc.category_id);
+  document.querySelectorAll('.s-cat-cb').forEach(cb=>{ cb.checked = selectedCats.includes(cb.value); });
+  openModal('modal-supplier');
+}
 
-  const catId = document.getElementById('prod-category').value || null;
-
-  const { error } = await db.from('products').insert({
-    process_id: activeProcessId,
-    category_id: catId,
-    sku: document.getElementById('prod-sku').value.trim() || null,
+async function saveSupplier() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { toast('Supplier name is required.', 'error'); return; }
+  const id = document.getElementById('s-id').value;
+  const payload = {
     name,
-    description: document.getElementById('prod-desc').value.trim() || null,
-    quantity: qty,
-    reference_price: document.getElementById('prod-refprice').value || null,
-    plating: document.getElementById('prod-plating').value.trim() || null,
-    tool_type: document.getElementById('prod-tool').value || null,
-    has_sample: document.getElementById('prod-sample').value === 'true',
-    image_url: document.getElementById('prod-img').value.trim() || null,
-    notes: document.getElementById('prod-notes').value.trim() || null
-  });
+    contact_name: document.getElementById('s-contact').value.trim() || null,
+    email: document.getElementById('s-email').value.trim() || null
+  };
+  let supplierId = id;
+  if (id) {
+    const { error } = await db.from('suppliers').update(payload).eq('id', id);
+    if (error) { toast('Error: '+error.message,'error'); return; }
+  } else {
+    const { data, error } = await db.from('suppliers').insert(payload).select().single();
+    if (error) { toast('Error: '+error.message,'error'); return; }
+    supplierId = data.id;
+  }
+  // sync categories
+  await db.from('supplier_categories').delete().eq('supplier_id', supplierId);
+  const checked = [...document.querySelectorAll('.s-cat-cb:checked')];
+  if (checked.length) {
+    await db.from('supplier_categories').insert(checked.map(cb=>({ supplier_id:supplierId, category_id:cb.value })));
+  }
+  closeModal('modal-supplier');
+  loadSuppliers();
+  toast(id ? 'Supplier updated!' : 'Supplier added!', 'success');
+}
 
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-  closeModal('modal-add-product');
-  ['prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-plating','prod-img','prod-notes'].forEach(id => document.getElementById(id).value = '');
+async function deleteSupplier(id) {
+  if (!confirm('Delete this supplier?')) return;
+  const { error } = await db.from('suppliers').delete().eq('id', id);
+  if (error) { toast('Error: '+error.message,'error'); return; }
+  loadSuppliers();
+  toast('Supplier deleted.', 'success');
+}
+
+// ── Process CRUD ──────────────────────
+function openNewProcess() {
+  document.getElementById('modal-process-title').textContent = 'NEW PROCESS';
+  document.getElementById('p-id').value = '';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-desc').value = '';
+  document.getElementById('p-status').value = 'open';
+  openModal('modal-process');
+}
+
+async function openEditProcess(id) {
+  const { data: p } = await db.from('processes').select('*').eq('id', id).single();
+  document.getElementById('modal-process-title').textContent = 'EDIT PROCESS';
+  document.getElementById('p-id').value = p.id;
+  document.getElementById('p-name').value = p.name;
+  document.getElementById('p-desc').value = p.description || '';
+  document.getElementById('p-status').value = p.status;
+  openModal('modal-process');
+}
+
+async function saveProcess() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { toast('Process name is required.','error'); return; }
+  const id = document.getElementById('p-id').value;
+  const payload = { name, description: document.getElementById('p-desc').value.trim()||null, status: document.getElementById('p-status').value };
+  if (id) {
+    await db.from('processes').update(payload).eq('id', id);
+  } else {
+    await db.from('processes').insert(payload);
+  }
+  closeModal('modal-process');
+  loadProcesses(); loadDashboard();
+  toast(id?'Process updated!':'Process created!','success');
+  if (id && activeProcessId === id) openProcess(id);
+}
+
+// ── Product CRUD ──────────────────────
+function openAddProductModal(processId) {
+  activeProcessId = processId;
+  document.getElementById('modal-product-title').textContent = 'ADD PRODUCT';
+  ['prod-id','prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-plating','prod-img','prod-notes'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('prod-category').value = '';
+  document.getElementById('prod-tool').value = '';
+  document.getElementById('prod-sample').value = 'false';
+  document.getElementById('prod-discontinued').value = 'false';
+  openModal('modal-product');
+}
+
+async function openEditProduct(id) {
+  const { data: p } = await db.from('products').select('*').eq('id', id).single();
+  activeProcessId = p.process_id;
+  document.getElementById('modal-product-title').textContent = 'EDIT PRODUCT';
+  document.getElementById('prod-id').value = p.id;
+  document.getElementById('prod-sku').value = p.sku||'';
+  document.getElementById('prod-name').value = p.name;
+  document.getElementById('prod-desc').value = p.description||'';
+  document.getElementById('prod-qty').value = p.quantity;
+  document.getElementById('prod-refprice').value = p.reference_price||'';
+  document.getElementById('prod-plating').value = p.plating||'';
+  document.getElementById('prod-tool').value = p.tool_type||'';
+  document.getElementById('prod-sample').value = p.has_sample?'true':'false';
+  document.getElementById('prod-discontinued').value = p.discontinued?'true':'false';
+  document.getElementById('prod-img').value = p.image_url||'';
+  document.getElementById('prod-notes').value = p.notes||'';
+  document.getElementById('prod-category').value = p.category_id||'';
+  openModal('modal-product');
+}
+
+async function saveProduct() {
+  const name = document.getElementById('prod-name').value.trim();
+  const qty  = parseInt(document.getElementById('prod-qty').value);
+  if (!name || !qty) { toast('Name and quantity are required.','error'); return; }
+  const id = document.getElementById('prod-id').value;
+  const newSku = document.getElementById('prod-sku').value.trim() || null;
+
+  // SKU duplicate check (exclude self when editing)
+  if (newSku) {
+    let skuQ = db.from('products').select('id').eq('sku', newSku);
+    if (id) skuQ = skuQ.neq('id', id);
+    const { data: existing } = await skuQ;
+    if (existing && existing.length > 0) { toast(`SKU "${newSku}" already exists.`, 'error'); return; }
+  }
+
+  const payload = {
+    process_id: activeProcessId,
+    category_id: document.getElementById('prod-category').value || null,
+    sku: newSku,
+    name,
+    description: document.getElementById('prod-desc').value.trim()||null,
+    quantity: qty,
+    reference_price: document.getElementById('prod-refprice').value||null,
+    plating: document.getElementById('prod-plating').value.trim()||null,
+    tool_type: document.getElementById('prod-tool').value||null,
+    has_sample: document.getElementById('prod-sample').value === 'true',
+    discontinued: document.getElementById('prod-discontinued').value === 'true',
+    image_url: document.getElementById('prod-img').value.trim()||null,
+    notes: document.getElementById('prod-notes').value.trim()||null
+  };
+
+  if (id) { await db.from('products').update(payload).eq('id', id); }
+  else     { await db.from('products').insert(payload); }
+
+  closeModal('modal-product');
+  toast(id?'Product updated!':'Product added!','success');
+  if (activeProcessId) openProcess(activeProcessId);
+  if (document.getElementById('view-products').classList.contains('active')) loadProductsMaster();
+}
+
+// ── CSV Import ────────────────────────
+function openCsvModal(processId) {
+  activeProcessId = processId;
+  csvParsedRows = [];
+  document.getElementById('csv-preview-wrap').style.display = 'none';
+  document.getElementById('csv-import-btn').style.display = 'none';
+  document.getElementById('csv-file-input').value = '';
+  openModal('modal-csv');
+}
+
+function handleCsvFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
+    if (lines.length < 2) { toast('CSV must have a header and at least one row.','error'); return; }
+    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const required = ['sku','name','quantity'];
+    const missing = required.filter(r=>!headers.includes(r));
+    if (missing.length) { toast('Missing columns: '+missing.join(', '),'error'); return; }
+    csvParsedRows = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+      const row = {};
+      headers.forEach((h,i) => row[h] = vals[i]||'');
+      return row;
+    }).filter(r=>r.name);
+    renderCsvPreview();
+  };
+  reader.readAsText(file);
+}
+
+async function renderCsvPreview() {
+  // Check for existing SKUs
+  const skus = csvParsedRows.map(r=>r.sku).filter(Boolean);
+  let existingSkus = [];
+  if (skus.length) {
+    const { data } = await db.from('products').select('sku').in('sku', skus);
+    existingSkus = (data||[]).map(d=>d.sku);
+  }
+  const dupes = csvParsedRows.filter(r=>r.sku && existingSkus.includes(r.sku));
+  const valid = csvParsedRows.filter(r=>!(r.sku && existingSkus.includes(r.sku)));
+  document.getElementById('csv-summary').innerHTML =
+    `<span style="color:var(--success);">${valid.length} rows ready to import</span>` +
+    (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} duplicate SKUs skipped: ${dupes.map(d=>d.sku).join(', ')}</span>` : '');
+  document.getElementById('csv-preview').innerHTML =
+    `<table style="width:100%;border-collapse:collapse;">
+      <thead><tr>${['SKU','Name','Category','Qty','Price','Status'].map(h=>`<th style="padding:4px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+      <tbody>${csvParsedRows.map(r=>{
+        const isDupe = r.sku && existingSkus.includes(r.sku);
+        const style = isDupe ? 'opacity:.4;' : '';
+        return `<tr style="${style}">
+          <td style="padding:4px 8px;font-size:11px;">${r.sku||'—'}</td>
+          <td style="padding:4px 8px;font-size:11px;">${r.name}</td>
+          <td style="padding:4px 8px;font-size:11px;">${r.category||'—'}</td>
+          <td style="padding:4px 8px;font-size:11px;">${r.quantity||'—'}</td>
+          <td style="padding:4px 8px;font-size:11px;">${r.reference_price||'—'}</td>
+          <td style="padding:4px 8px;font-size:11px;">${isDupe?'<span style="color:var(--danger)">Duplicate</span>':'<span style="color:var(--success)">OK</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  document.getElementById('csv-preview-wrap').style.display = 'block';
+  document.getElementById('csv-import-btn').style.display = valid.length ? 'inline-flex' : 'none';
+  // store valid rows for import
+  csvParsedRows._valid = valid;
+  csvParsedRows._existingSkus = existingSkus;
+}
+
+async function importCsv() {
+  const validRows = csvParsedRows._valid || [];
+  if (!validRows.length) { toast('Nothing to import.','error'); return; }
+
+  // Build category map
+  const catMap = {};
+  allCategories.forEach(c => catMap[c.name.toLowerCase()] = c.id);
+
+  const toInsert = validRows.map(r => ({
+    process_id: activeProcessId,
+    sku: r.sku || null,
+    name: r.name,
+    category_id: r.category ? (catMap[r.category.toLowerCase()]||null) : null,
+    quantity: parseInt(r.quantity)||0,
+    reference_price: r.reference_price ? parseFloat(r.reference_price) : null,
+    plating: r.plating || null,
+    tool_type: r.tool_type || null,
+    has_sample: (r.has_sample||'').toLowerCase() === 'true',
+    discontinued: (r.discontinued||'').toLowerCase() === 'true',
+    description: r.description || null,
+  }));
+
+  const { error } = await db.from('products').insert(toInsert);
+  if (error) { toast('Import error: '+error.message,'error'); return; }
+  closeModal('modal-csv');
+  toast(`${toInsert.length} products imported!`, 'success');
   openProcess(activeProcessId);
-  toast('Product added!', 'success');
-};
+}
 
-// ── Override loadSuppliers to show categories ──
-const _origLoadSuppliers = loadSuppliers;
-loadSuppliers = async function() {
-  const { data } = await db.from('suppliers').select('*, supplier_categories(category:categories(name))').order('name');
-  const tbody = document.getElementById('suppliers-table');
-  if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">No suppliers yet.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = data.map(s => {
-    const cats = (s.supplier_categories || []).map(sc =>
-      `<span style="background:#111;border:1px solid #333;padding:2px 8px;border-radius:20px;font-size:10px;margin-right:3px;">${sc.category.name}</span>`
-    ).join('') || '<span style="color:var(--muted)">—</span>';
-    return `<tr>
-      <td>${s.name}</td>
-      <td>${s.contact_name || '—'}</td>
-      <td>${s.email || '—'}</td>
-      <td>${cats}</td>
-      <td>${new Date(s.created_at).toLocaleDateString()}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${s.id}')">Delete</button></td>
-    </tr>`;
+// Drag & drop for CSV
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('csv-dropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', ()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('dragover'); handleCsvFile(e.dataTransfer.files[0]); });
+});
+
+// ── Quote Edit ────────────────────────
+async function openEditQuote(quoteId) {
+  const { data: q } = await db.from('quotes')
+    .select('*, product:products(name,sku), supplier:suppliers(name)').eq('id', quoteId).single();
+  document.getElementById('eq-id').value = q.id;
+  document.getElementById('eq-info').textContent = `${q.supplier.name} · ${q.product.sku?`[${q.product.sku}] `:''}${q.product.name}`;
+  document.getElementById('eq-status').value = q.status;
+  document.getElementById('eq-price').value = q.unit_price||'';
+  document.getElementById('eq-lead').value = q.lead_time_days||'';
+  document.getElementById('eq-notes').value = q.counter_notes||'';
+  openModal('modal-edit-quote');
+}
+
+async function saveQuote() {
+  const id = document.getElementById('eq-id').value;
+  const { error } = await db.from('quotes').update({
+    status: document.getElementById('eq-status').value,
+    unit_price: document.getElementById('eq-price').value || null,
+    lead_time_days: document.getElementById('eq-lead').value || null,
+    counter_notes: document.getElementById('eq-notes').value || null,
+    responded_at: new Date().toISOString()
+  }).eq('id', id);
+  if (error) { toast('Error: '+error.message,'error'); return; }
+  closeModal('modal-edit-quote');
+  toast('Quote updated!','success');
+  openProcess(activeProcessId);
+}
+
+// ── Process Detail ────────────────────
+async function openProcess(id) {
+  activeProcessId = id;
+  showView('quotes');
+  const [{ data: process }, { data: products }, { data: psuppliers }, { data: quotes }] = await Promise.all([
+    db.from('processes').select('*').eq('id',id).single(),
+    db.from('products').select('*,category:categories(name)').eq('process_id',id).order('created_at'),
+    db.from('process_suppliers').select('*, supplier:suppliers(*)').eq('process_id',id),
+    db.from('quotes').select('*, product:products(name,sku), supplier:suppliers(name)').eq('process_id',id)
+  ]);
+  document.getElementById('topbar-title').textContent = process.name.toUpperCase();
+  const quoteMap = {};
+  (quotes||[]).forEach(q=>{ if(!quoteMap[q.product_id]) quoteMap[q.product_id]={}; quoteMap[q.product_id][q.supplier_id]=q; });
+  const suppliers = (psuppliers||[]).map(ps=>ps.supplier);
+
+  document.getElementById('quotes-content').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+      <span class="badge badge-${process.status}">${process.status}</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddProductModal('${id}')">+ Add Product</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCsvModal('${id}')">↑ Import CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="openInviteSupplierModal('${id}')">+ Invite Supplier</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditProcess('${id}')">Edit Process</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div>
+        <div class="section-title">Products (${(products||[]).length})</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Qty</th><th>Plating</th><th>Sample</th><th>Status</th><th></th></tr></thead>
+          <tbody>${!(products||[]).length ? '<tr><td colspan="8" class="empty">No products yet.</td></tr>' :
+            (products||[]).map(p=>`<tr>
+              <td style="color:var(--muted)">${p.sku||'—'}</td>
+              <td>${p.name}</td>
+              <td>${p.category?`<span class="tag">${p.category.name}</span>`:'—'}</td>
+              <td>${p.quantity.toLocaleString()}</td>
+              <td style="color:var(--muted)">${p.plating||'—'}</td>
+              <td>${p.has_sample?'✓':'✗'}</td>
+              <td>${p.discontinued?'<span class="badge badge-discontinued" style="font-size:9px;">Disc.</span>':''}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="openEditProduct('${p.id}')">Edit</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>
+      <div>
+        <div class="section-title">Invited Suppliers</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Supplier</th><th>Password</th><th>Active</th></tr></thead>
+          <tbody>${!(psuppliers||[]).length ? '<tr><td colspan="3" class="empty">No suppliers invited.</td></tr>' :
+            (psuppliers||[]).map(ps=>`<tr>
+              <td>${ps.supplier.name}</td>
+              <td><code style="background:var(--surface2);padding:2px 6px;border-radius:2px;font-size:11px;">${ps.access_password}</code></td>
+              <td>${ps.is_active?'<span class="badge badge-open">Yes</span>':'<span class="badge badge-closed">No</span>'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="section-title">Quote Matrix</div>
+    ${buildQuoteMatrix(products||[], suppliers, quoteMap, quotes||[])}
+  `;
+}
+
+function buildQuoteMatrix(products, suppliers, quoteMap, allQuotes) {
+  if (!products.length || !suppliers.length)
+    return '<div class="empty">Add products and invite suppliers to see the matrix.</div>';
+  const headers = suppliers.map(s=>`<th>${s.name}</th>`).join('');
+  const rows = products.map(p=>{
+    const cells = suppliers.map(s=>{
+      const q = quoteMap[p.id]?.[s.id];
+      if (!q || q.status==='pending') return `<td><span class="badge badge-pending">Pending</span></td>`;
+      const price = q.unit_price||q.counter_price;
+      const priceStr = price ? `<br><small style="font-size:10px;">USD ${parseFloat(price).toFixed(2)}</small>` : '';
+      const editBtn = `<br><button class="btn btn-ghost btn-sm" style="margin-top:4px;font-size:9px;" onclick="openEditQuote('${q.id}')">Edit</button>`;
+      return `<td><span class="badge badge-${q.status}">${q.status}${priceStr}</span>${editBtn}</td>`;
+    }).join('');
+    return `<tr><td><b>${p.sku?`[${p.sku}] `:''}${p.name}</b><br><small style="color:var(--muted);">${p.quantity.toLocaleString()} pcs</small></td>${cells}</tr>`;
   }).join('');
-};
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>Product</th>${headers}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
 
-// ── Patch showView to handle products ──
-const _origShowView = showView;
-showView = function(v) {
-  _origShowView(v);
-  if (v === 'products') {
-    document.getElementById('topbar-title').textContent = 'PRODUCTS';
-    loadProductsMaster();
+// ── Invite Supplier ───────────────────
+async function openInviteSupplierModal(processId) {
+  activeProcessId = processId;
+  const { data } = await db.from('suppliers').select('*').order('name');
+  document.getElementById('invite-supplier-id').innerHTML = (data||[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('invite-password').value = '';
+  openModal('modal-invite-supplier');
+}
+async function inviteSupplier() {
+  const supplierId = document.getElementById('invite-supplier-id').value;
+  const password   = document.getElementById('invite-password').value.trim();
+  if (!password) { toast('Password is required.','error'); return; }
+  const { error } = await db.from('process_suppliers').upsert({
+    process_id:activeProcessId, supplier_id:supplierId, access_password:password, is_active:true
+  }, { onConflict:'process_id,supplier_id' });
+  if (error) { toast('Error: '+error.message,'error'); return; }
+  const { data: products } = await db.from('products').select('id').eq('process_id', activeProcessId);
+  if (products?.length) {
+    await db.from('quotes').upsert(
+      products.map(p=>({ process_id:activeProcessId, supplier_id:supplierId, product_id:p.id, status:'pending' })),
+      { onConflict:'process_id,supplier_id,product_id', ignoreDuplicates:true }
+    );
   }
-};
+  closeModal('modal-invite-supplier');
+  openProcess(activeProcessId);
+  toast('Supplier invited!','success');
+}
 
-// ── Patch loadAll to include categories ──
-const _origLoadAll = loadAll;
-loadAll = async function() {
-  await loadCategories();
-  await _origLoadAll();
-};
+// ── UI ────────────────────────────────
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v)?.classList.add('active');
+  document.getElementById('nav-'+v)?.classList.add('active');
+  const titles = {dashboard:'Dashboard',processes:'Processes',products:'Products',suppliers:'Suppliers',quotes:'Quotes'};
+  document.getElementById('topbar-title').textContent = (titles[v]||v).toUpperCase();
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+  if (v==='processes') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewProcess()">+ New Process</button>'; loadProcesses(); }
+  if (v==='suppliers') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddSupplier()">+ Add Supplier</button>'; }
+  if (v==='products')  { actions.innerHTML=''; loadProductsMaster(); }
+  if (v==='dashboard') loadDashboard();
+}
 
-// ── Active filter button style ──
-const filterStyle = document.createElement('style');
-filterStyle.textContent = '.prod-filter.active { background:#ffffff !important; color:#000000 !important; }';
-document.head.appendChild(filterStyle);
+function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
 
-// ── Start ──
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  setTimeout(()=>el.className='', 3000);
+}
+
+// ── Start ─────────────────────────────
 init();
 </script>
 </body>
