@@ -587,6 +587,215 @@ let activeProcessId = null;
 let supplierSession = null;
 let csvParsedRows = [];
 
+
+// ── i18n ──────────────────────────────────────────────────────────────
+let lang = localStorage.getItem('sg_lang') || 'pt';
+
+const T = {
+  pt: {
+    nav_dashboard:'Dashboard', nav_processes:'Processos', nav_quotes:'Cotações',
+    nav_products:'Produtos', nav_suppliers:'Fornecedores', nav_steps:'Guia',
+    btn_new_process:'+ Novo Processo', btn_add_supplier:'+ Fornecedor',
+    btn_add_product:'+ Produto', btn_import_csv:'↑ Importar CSV',
+    dash_active_proc:'Processos Ativos', dash_currently_open:'Em aberto',
+    dash_suppliers:'Fornecedores', dash_total_reg:'Total cadastrado',
+    dash_pending:'Cotações Pendentes', dash_awaiting:'Aguardando resposta',
+    dash_responded:'Respondidas', dash_acc_counter:'Aceitas + contra-proposta',
+    dash_recent:'Processos Recentes',
+    th_process:'Processo', th_status:'Status', th_created:'Criado',
+    th_name:'Nome', th_contact:'Contato', th_email:'E-mail',
+    th_categories:'Categorias', th_added:'Adicionado',
+    th_sku:'SKU', th_category:'Categoria', th_sub_category:'Sub Categoria',
+    th_process_col:'Processo', th_qty:'Qtd', th_plating:'Banho',
+    th_samples:'Fornec. c/ Amostra', th_stat:'Status',
+    filter_all:'Todos', filter_disc:'Fora de Linha',
+    search_placeholder:'Buscar SKU ou nome\u2026',
+    sup_registered:'Fornecedores Cadastrados',
+    proc_add_product:'+ Adicionar Produto', proc_import_csv:'\u2191 Importar CSV',
+    proc_invite_supplier:'+ Convidar Fornecedor', proc_edit:'Editar Processo',
+    proc_products:'Produtos', proc_invited_suppliers:'Fornecedores Convidados',
+    proc_quote_matrix:'Matriz de Cota\u00e7\u00e3o',
+    proc_no_products:'Nenhum produto ainda.',
+    proc_no_suppliers:'Nenhum fornecedor convidado.',
+    proc_matrix_empty:'Adicione produtos e convide fornecedores para ver a matriz.',
+    th_proc_sku:'SKU', th_proc_name:'Nome', th_proc_cat:'Categoria',
+    th_proc_subcat:'Sub Cat.', th_proc_qty:'Qtd', th_proc_plating:'Banho',
+    th_proc_sample:'Amostra', th_proc_status:'Status',
+    th_sup_supplier:'Fornecedor', th_sup_pass:'Senha', th_sup_active:'Ativo',
+    btn_cancel:'Cancelar', btn_logout:'Sair', btn_delete:'Excluir', btn_edit:'Editar',
+    btn_import:'Importar Produtos',
+    toast_supplier_required:'Nome do fornecedor \u00e9 obrigat\u00f3rio.',
+    toast_process_required:'Nome do processo \u00e9 obrigat\u00f3rio.',
+    toast_sku_required:'SKU \u00e9 obrigat\u00f3rio.',
+    toast_cat_required:'Categoria Principal \u00e9 obrigat\u00f3ria.',
+    toast_sku_exists:'j\u00e1 existe.',
+    toast_password_required:'Senha \u00e9 obrigat\u00f3ria.',
+    toast_supplier_added:'Fornecedor adicionado!', toast_supplier_updated:'Fornecedor atualizado!',
+    toast_supplier_deleted:'Fornecedor exclu\u00eddo.',
+    toast_process_created:'Processo criado!', toast_process_updated:'Processo atualizado!',
+    toast_product_added:'Produto adicionado!', toast_product_updated:'Produto atualizado!',
+    toast_quote_updated:'Cota\u00e7\u00e3o atualizada!', toast_supplier_invited:'Fornecedor convidado!',
+    toast_import_success:'produtos importados!',
+    toast_nothing_import:'Nada para importar.',
+    toast_import_error:'Erro na importa\u00e7\u00e3o: ',
+    toast_login_failed:'Falha no login: ', toast_welcome:'Bem-vindo!',
+    loading:'Carregando...', no_processes:'Nenhum processo ainda.',
+    no_products:'Nenhum produto encontrado.',
+    steps_intro:'Este guia apresenta o fluxo completo de cota\u00e7\u00e3o e pedidos \u2014 da demanda inicial \u00e0 organiza\u00e7\u00e3o dos pagamentos.',
+    s1_title:'Definir a Demanda', s2_title:'Criar um Processo',
+    s3_title:'Adicionar Produtos ao Processo', s4_title:'Convidar Fornecedores',
+    s5_title:'Fornecedores Respondem', s6_title:'Consolidar e Alocar',
+    s7_title:'Confirmar Pedidos com Fornecedores', s8_title:'Organizar Pagamentos',
+    s1_body:'Antes de tudo, mapeie os produtos necess\u00e1rios para o ciclo. Acesse <strong>Produtos</strong> e certifique-se de que todos os itens est\u00e3o cadastrados no cat\u00e1logo com SKU, Categoria Principal e Sub Categoria. \u00c9 poss\u00edvel importar em massa via CSV.',
+    s2_body:'Acesse <strong>Processos \u2192 Novo Processo</strong>. Um processo representa uma rodada de cota\u00e7\u00e3o (ex: "Ver\u00e3o 2025"). D\u00ea um nome claro e defina o status como <em>Aberto</em>.',
+    s3_body:'Dentro do processo, clique em <strong>+ Adicionar Produto</strong> ou <strong>\u2191 Importar CSV</strong> para incluir os itens desta rodada. Nesta etapa, preencha os detalhes espec\u00edficos do processo: quantidade, banho, tipo de ferramenta e se h\u00e1 amostra.',
+    s3_tip:'\u26a0\ufe0f Antes de confirmar as quantidades, verifique diferen\u00e7as de banho \u2014 um pre\u00e7o muito abaixo do normal pode indicar um banho diferente (ex: 1mic vs 3mic). Confirme tamb\u00e9m quais fornecedores t\u00eam amostra de cada produto.',
+    s4_body:'Clique em <strong>+ Convidar Fornecedor</strong> dentro do processo. Escolha o fornecedor e defina uma senha de acesso exclusiva para este processo. O fornecedor usar\u00e1 esta senha para acessar o portal.',
+    s4_body2:'Compartilhe o link do portal e a senha com cada fornecedor. A URL do portal \u00e9 a mesma URL deste sistema.',
+    s5_body:'Cada fornecedor acessa o portal com sua senha e visualiza apenas os produtos atribu\u00eddos a ele. Pode <strong>Aceitar</strong>, <strong>Rejeitar</strong> ou enviar uma <strong>Contra-Proposta</strong> com pre\u00e7o, prazo e observa\u00e7\u00f5es.',
+    s6_body:'Acesse <strong>Cota\u00e7\u00f5es</strong> e abra o processo. A Matriz de Cota\u00e7\u00e3o exibe todas as respostas dos fornecedores lado a lado por produto. Identifique os melhores pre\u00e7os e aloque as quantidades.',
+    s6_tip:'\ud83d\udca1 Use o bot\u00e3o <strong>Editar</strong> em cada c\u00e9lula da matriz para ajustar manualmente o status ou pre\u00e7o ap\u00f3s uma negocia\u00e7\u00e3o por telefone ou e-mail.',
+    s7_body:'Com a aloca\u00e7\u00e3o finalizada, confirme cada pedido com o respectivo fornecedor. Use o modelo de mensagem padr\u00e3o:',
+    s8_body:'Ap\u00f3s a confirma\u00e7\u00e3o de todos os fornecedores, organize os pagamentos de entrada de cada pedido. Marque o processo como <strong>Finalizado</strong> quando os pagamentos forem organizados.',
+  },
+  en: {
+    nav_dashboard:'Dashboard', nav_processes:'Processes', nav_quotes:'Quotes',
+    nav_products:'Products', nav_suppliers:'Suppliers', nav_steps:'Steps',
+    btn_new_process:'+ New Process', btn_add_supplier:'+ Add Supplier',
+    btn_add_product:'+ Add Product', btn_import_csv:'\u2191 Import CSV',
+    dash_active_proc:'Active Processes', dash_currently_open:'Currently open',
+    dash_suppliers:'Suppliers', dash_total_reg:'Total registered',
+    dash_pending:'Pending Quotes', dash_awaiting:'Awaiting response',
+    dash_responded:'Responded', dash_acc_counter:'Accepted + counter',
+    dash_recent:'Recent Processes',
+    th_process:'Process', th_status:'Status', th_created:'Created',
+    th_name:'Name', th_contact:'Contact', th_email:'Email',
+    th_categories:'Categories', th_added:'Added',
+    th_sku:'SKU', th_category:'Category', th_sub_category:'Sub Category',
+    th_process_col:'Process', th_qty:'Qty', th_plating:'Plating',
+    th_samples:'Suppliers w/ Sample', th_stat:'Status',
+    filter_all:'All', filter_disc:'Discontinued',
+    search_placeholder:'Search SKU or name\u2026',
+    sup_registered:'Registered Suppliers',
+    proc_add_product:'+ Add Product', proc_import_csv:'\u2191 Import CSV',
+    proc_invite_supplier:'+ Invite Supplier', proc_edit:'Edit Process',
+    proc_products:'Products', proc_invited_suppliers:'Invited Suppliers',
+    proc_quote_matrix:'Quote Matrix',
+    proc_no_products:'No products yet.',
+    proc_no_suppliers:'No suppliers invited.',
+    proc_matrix_empty:'Add products and invite suppliers to see the matrix.',
+    th_proc_sku:'SKU', th_proc_name:'Name', th_proc_cat:'Category',
+    th_proc_subcat:'Sub Cat.', th_proc_qty:'Qty', th_proc_plating:'Plating',
+    th_proc_sample:'Sample', th_proc_status:'Status',
+    th_sup_supplier:'Supplier', th_sup_pass:'Password', th_sup_active:'Active',
+    btn_cancel:'Cancel', btn_logout:'Logout', btn_delete:'Delete', btn_edit:'Edit',
+    btn_import:'Import Products',
+    toast_supplier_required:'Supplier name is required.',
+    toast_process_required:'Process name is required.',
+    toast_sku_required:'SKU is required.',
+    toast_cat_required:'Main Category is required.',
+    toast_sku_exists:'already exists.',
+    toast_password_required:'Password is required.',
+    toast_supplier_added:'Supplier added!', toast_supplier_updated:'Supplier updated!',
+    toast_supplier_deleted:'Supplier deleted.',
+    toast_process_created:'Process created!', toast_process_updated:'Process updated!',
+    toast_product_added:'Product added!', toast_product_updated:'Product updated!',
+    toast_quote_updated:'Quote updated!', toast_supplier_invited:'Supplier invited!',
+    toast_import_success:'products imported!',
+    toast_nothing_import:'Nothing to import.',
+    toast_import_error:'Import error: ',
+    toast_login_failed:'Login failed: ', toast_welcome:'Welcome!',
+    loading:'Loading...', no_processes:'No processes yet.',
+    no_products:'No products found.',
+    steps_intro:'This guide walks you through the full quoting and ordering flow \u2014 from initial demand through payment organization.',
+    s1_title:'Define the Demand', s2_title:'Create a Process',
+    s3_title:'Add Products to the Process', s4_title:'Invite Suppliers',
+    s5_title:'Suppliers Respond', s6_title:'Consolidate & Allocate',
+    s7_title:'Confirm Orders with Suppliers', s8_title:'Organize Payments',
+    s1_body:'Before anything, map out the products needed for the cycle. Go to <strong>Products</strong> and ensure all items are registered in the catalog with SKU, Main Category and Sub Category. You can import in bulk via CSV.',
+    s2_body:'Go to <strong>Processes \u2192 New Process</strong>. A process represents one quoting round (e.g. "Summer 2025"). Give it a clear name and set status to Open.',
+    s3_body:'Inside the process, click <strong>+ Add Product</strong> or <strong>\u2191 Import CSV</strong> to add the items for this round. At this stage, fill in process-specific details: quantity, plating, tool type, and whether you have a sample.',
+    s3_tip:'\u26a0\ufe0f Before confirming quantities, cross-check plating differences \u2014 a price significantly lower than normal may indicate a different bath (e.g. 1mic vs 3mic). Also confirm which suppliers hold samples of each product.',
+    s4_body:'Click <strong>+ Invite Supplier</strong> inside the process. Choose the supplier and set a unique access password for this process. The supplier will use this password to access the portal.',
+    s4_body2:'Share the portal link and password with each supplier. The portal URL is the same as this application URL.',
+    s5_body:'Each supplier logs into the portal with their password and sees only their assigned products. They can <strong>Accept</strong>, <strong>Reject</strong>, or submit a <strong>Counter-Proposal</strong> with their price, lead time, and notes.',
+    s6_body:'Go to <strong>Quotes</strong> and open the process. The Quote Matrix shows all supplier responses side by side per product. Identify the best prices and allocate quantities accordingly.',
+    s6_tip:'\ud83d\udca1 Use the <strong>Edit</strong> button on each quote cell to manually adjust status or price if needed after a phone/email negotiation.',
+    s7_body:'Once allocation is final, confirm each order with the respective supplier. Use the standard message template:',
+    s8_body:'After all suppliers confirm, organize the deposit payments for each order. Mark the process as <strong>Finalized</strong> once payments are arranged.',
+  }
+};
+
+function t(key) { return (T[lang] && T[lang][key]) || (T.en[key]) || key; }
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('sg_lang', l);
+  applyLang();
+}
+
+function applyLang() {
+  const l = T[lang];
+  // Lang buttons styling
+  const ptBtn = document.getElementById('lang-pt');
+  const enBtn = document.getElementById('lang-en');
+  if (ptBtn) ptBtn.className = lang === 'pt' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  if (enBtn) enBtn.className = lang === 'en' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  // Logout button
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) logoutBtn.textContent = l.btn_logout;
+  // Nav items (last text node)
+  const navIds = ['dashboard','processes','quotes','products','suppliers','steps'];
+  const navKeys = ['nav_dashboard','nav_processes','nav_quotes','nav_products','nav_suppliers','nav_steps'];
+  navIds.forEach((id, i) => {
+    const el = document.getElementById('nav-' + id);
+    if (!el) return;
+    const nodes = el.childNodes;
+    nodes[nodes.length - 1].textContent = '\n        ' + l[navKeys[i]] + '\n      ';
+  });
+  // Dashboard cards
+  const cardLabels = document.querySelectorAll('.card-label');
+  const labelKeys = ['dash_active_proc','dash_suppliers','dash_pending','dash_responded'];
+  cardLabels.forEach((el, i) => { if (labelKeys[i]) el.textContent = l[labelKeys[i]]; });
+  const cardSubs = document.querySelectorAll('.card-sub');
+  const subKeys = ['dash_currently_open','dash_total_reg','dash_awaiting','dash_acc_counter'];
+  cardSubs.forEach((el, i) => { if (subKeys[i]) el.textContent = l[subKeys[i]]; });
+  // Dashboard section title & table headers
+  const dashSectionTitle = document.querySelector('#view-dashboard .section-title');
+  if (dashSectionTitle) dashSectionTitle.childNodes[0].textContent = l.dash_recent;
+  const dashTh = document.querySelectorAll('#view-dashboard th');
+  if (dashTh[0]) dashTh[0].textContent = l.th_process;
+  if (dashTh[1]) dashTh[1].textContent = l.th_status;
+  if (dashTh[2]) dashTh[2].textContent = l.th_created;
+  // Products filter & search
+  const filterBtns = document.querySelectorAll('#view-products .filter-btn');
+  if (filterBtns[0]) filterBtns[0].textContent = l.filter_all;
+  if (filterBtns[4]) filterBtns[4].textContent = l.filter_disc;
+  const searchInput = document.getElementById('prod-search');
+  if (searchInput) searchInput.placeholder = l.search_placeholder;
+  // Products table headers
+  const pTh = document.querySelectorAll('#view-products th');
+  const pHeaders = [l.th_sku,'',l.th_category,l.th_sub_category,l.th_process_col,l.th_qty,l.th_plating,l.th_samples,l.th_stat,''];
+  pTh.forEach((el, i) => { if (pHeaders[i] !== undefined && pHeaders[i] !== '') el.textContent = pHeaders[i]; });
+  // Suppliers section title & table headers
+  const supTitle = document.querySelector('#view-suppliers .table-title');
+  if (supTitle) supTitle.textContent = l.sup_registered;
+  const supTh = document.querySelectorAll('#view-suppliers th');
+  [l.th_name,l.th_contact,l.th_email,l.th_categories,l.th_added,''].forEach((h,i)=>{ if(supTh[i]) supTh[i].textContent = h; });
+  // Steps page
+  const stepsIntro = document.querySelector('#view-steps > div > p');
+  if (stepsIntro) stepsIntro.textContent = l.steps_intro;
+  const stepTitles = document.querySelectorAll('.step-title');
+  const stepTitleKeys = ['s1_title','s2_title','s3_title','s4_title','s5_title','s6_title','s7_title','s8_title'];
+  stepTitles.forEach((el, i) => { if (stepTitleKeys[i]) el.textContent = l[stepTitleKeys[i]]; });
+  const stepParas = document.querySelectorAll('.step-body > p');
+  const paraKeys = ['s1_body','s2_body','s3_body','s4_body','s4_body2','s5_body','s6_body','s7_body','s8_body'];
+  stepParas.forEach((el, i) => { if (paraKeys[i] && l[paraKeys[i]]) el.innerHTML = l[paraKeys[i]]; });
+  const stepTips = document.querySelectorAll('.step-tip');
+  if (stepTips[0] && l.s3_tip) stepTips[0].textContent = l.s3_tip;
+  if (stepTips[1] && l.s6_tip) stepTips[1].innerHTML = l.s6_tip;
+}
+
 // ── Init ──────────────────────────────
 function init() {
   if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
@@ -615,6 +824,7 @@ function showAdminLogin() {
 function showAdminApp() {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
+  applyLang();
 }
 async function adminLogin() {
   const { error } = await db.auth.signInWithPassword({
@@ -1284,298 +1494,6 @@ function toast(msg, type='') {
   el.textContent = msg; el.className = `show ${type}`;
   setTimeout(()=>el.className='', 3000);
 }
-
-
-// ── i18n ─────────────────────────────
-let lang = localStorage.getItem('sg_lang') || 'pt';
-
-const T = {
-  pt: {
-    // Nav
-    nav_dashboard: 'Dashboard', nav_processes: 'Processos', nav_quotes: 'Cotações',
-    nav_products: 'Produtos', nav_suppliers: 'Fornecedores', nav_steps: 'Guia',
-    // Topbar actions
-    btn_new_process: '+ Novo Processo', btn_add_supplier: '+ Fornecedor',
-    btn_add_product: '+ Produto', btn_import_csv: '↑ Importar CSV',
-    // Dashboard
-    dash_active_proc: 'Processos Ativos', dash_currently_open: 'Em aberto',
-    dash_suppliers: 'Fornecedores', dash_total_reg: 'Total cadastrado',
-    dash_pending: 'Cotações Pendentes', dash_awaiting: 'Aguardando resposta',
-    dash_responded: 'Respondidas', dash_acc_counter: 'Aceitas + contra-proposta',
-    dash_recent: 'Processos Recentes',
-    // Table headers
-    th_process: 'Processo', th_status: 'Status', th_created: 'Criado', th_actions: '',
-    th_name: 'Nome', th_contact: 'Contato', th_email: 'E-mail',
-    th_categories: 'Categorias', th_added: 'Adicionado',
-    th_sku: 'SKU', th_category: 'Categoria', th_sub_category: 'Sub Categoria',
-    th_process_col: 'Processo', th_qty: 'Qtd', th_plating: 'Banho',
-    th_samples: 'Fornec. c/ Amostra', th_stat: 'Status',
-    // Filters
-    filter_all: 'Todos', filter_disc: 'Fora de Linha',
-    search_placeholder: 'Buscar SKU ou nome…',
-    // Suppliers table
-    sup_registered: 'Fornecedores Cadastrados',
-    // Modal titles
-    modal_add_supplier: 'Adicionar Fornecedor', modal_edit_supplier: 'Editar Fornecedor',
-    modal_new_process: 'Novo Processo', modal_edit_process: 'Editar Processo',
-    modal_add_product: 'Adicionar Produto', modal_edit_product: 'Editar Produto',
-    modal_import_csv: 'Importar Produtos via CSV',
-    modal_edit_quote: 'Editar Cotação', modal_invite_supplier: 'Convidar Fornecedor',
-    modal_admin_login: 'Login Admin',
-    // Modal fields
-    f_supplier_name: 'Nome do Fornecedor *', f_contact: 'Nome do Contato',
-    f_email: 'E-mail', f_categories_supplied: 'Categorias Fornecidas',
-    f_process_name: 'Nome do Processo *', f_description: 'Descrição',
-    f_status: 'Status',
-    f_sku: 'SKU *', f_product_name: 'Nome do Produto', f_main_cat: 'Categoria Principal *',
-    f_sub_cat: 'Sub Categoria', f_qty: 'Quantidade', f_ref_price: 'Preço Ref. (USD)',
-    f_tool_type: 'Tipo de Ferramenta', f_discontinued: 'Fora de Linha?',
-    f_image_url: 'URL da Imagem', f_notes: 'Notas Internas',
-    f_access_password: 'Senha de Acesso *', f_supplier: 'Fornecedor',
-    f_eq_status: 'Status', f_unit_price: 'Preço Unit. (USD)', f_lead_time: 'Prazo (dias)',
-    f_notes_obs: 'Notas',
-    // Buttons
-    btn_cancel: 'Cancelar', btn_save: 'Salvar', btn_save_supplier: 'Salvar Fornecedor',
-    btn_save_process: 'Salvar Processo', btn_save_product: 'Salvar Produto',
-    btn_save_quote: 'Salvar Cotação', btn_invite: 'Convidar Fornecedor',
-    btn_login: 'Entrar', btn_logout: 'Sair', btn_delete: 'Excluir', btn_edit: 'Editar',
-    btn_view: 'Ver →', btn_import: 'Importar Produtos',
-    // Process detail
-    proc_add_product: '+ Adicionar Produto', proc_import_csv: '↑ Importar CSV',
-    proc_invite_supplier: '+ Convidar Fornecedor', proc_edit: 'Editar Processo',
-    proc_products: 'Produtos', proc_invited_suppliers: 'Fornecedores Convidados',
-    proc_quote_matrix: 'Matriz de Cotação', proc_no_products: 'Nenhum produto ainda.',
-    proc_no_suppliers: 'Nenhum fornecedor convidado.', proc_matrix_empty: 'Adicione produtos e convide fornecedores para ver a matriz.',
-    th_proc_sku: 'SKU', th_proc_name: 'Nome', th_proc_cat: 'Categoria',
-    th_proc_subcat: 'Sub Cat.', th_proc_qty: 'Qtd', th_proc_plating: 'Banho',
-    th_proc_sample: 'Amostra', th_proc_status: 'Status',
-    th_sup_supplier: 'Fornecedor', th_sup_pass: 'Senha', th_sup_active: 'Ativo',
-    // Select options
-    opt_no_tool: 'Sem ferramenta', opt_no: 'Não', opt_yes_disc: 'Sim — Fora de linha',
-    opt_select: '— Selecionar —', opt_select_cat: '— Selecionar categoria —',
-    // CSV
-    csv_hint: 'CSV deve conter as colunas (cabeçalho obrigatório):',
-    csv_drop: 'Arraste o CSV aqui ou clique para selecionar',
-    csv_ready: 'linhas prontas para importar',
-    csv_dupes: 'SKUs duplicados ignorados',
-    // Steps page
-    steps_intro: 'Este guia apresenta o fluxo completo de cotação e pedidos — da demanda inicial à organização dos pagamentos.',
-    s1_title: 'Definir a Demanda', s2_title: 'Criar um Processo',
-    s3_title: 'Adicionar Produtos ao Processo', s4_title: 'Convidar Fornecedores',
-    s5_title: 'Fornecedores Respondem', s6_title: 'Consolidar e Alocar',
-    s7_title: 'Confirmar Pedidos com Fornecedores', s8_title: 'Organizar Pagamentos',
-    s1_body: 'Antes de tudo, mapeie os produtos necessários para o ciclo. Acesse <strong>Produtos</strong> e certifique-se de que todos os itens estão cadastrados no catálogo com SKU, Categoria Principal e Sub Categoria. É possível importar em massa via CSV.',
-    s2_body: 'Acesse <strong>Processos → Novo Processo</strong>. Um processo representa uma rodada de cotação (ex: "Verão 2025"). Dê um nome claro e defina o status como <em>Aberto</em>.',
-    s3_body: 'Dentro do processo, clique em <strong>+ Adicionar Produto</strong> ou <strong>↑ Importar CSV</strong> para incluir os itens desta rodada. Nesta etapa, preencha os detalhes específicos do processo: quantidade, banho, tipo de ferramenta e se há amostra.',
-    s3_tip: '⚠️ Antes de confirmar as quantidades, verifique diferenças de banho — um preço muito abaixo do normal pode indicar um banho diferente (ex: 1mic vs 3mic). Confirme também quais fornecedores têm amostra de cada produto.',
-    s4_body: 'Clique em <strong>+ Convidar Fornecedor</strong> dentro do processo. Escolha o fornecedor e defina uma senha de acesso exclusiva para este processo. O fornecedor usará esta senha para acessar o portal.',
-    s4_body2: 'Compartilhe o link do portal e a senha com cada fornecedor. A URL do portal é a mesma URL deste sistema.',
-    s5_body: 'Cada fornecedor acessa o portal com sua senha e visualiza apenas os produtos atribuídos a ele. Pode <strong>Aceitar</strong>, <strong>Rejeitar</strong> ou enviar uma <strong>Contra-Proposta</strong> com preço, prazo e observações.',
-    s6_body: 'Acesse <strong>Cotações</strong> e abra o processo. A Matriz de Cotação exibe todas as respostas dos fornecedores lado a lado por produto. Identifique os melhores preços e aloque as quantidades.',
-    s6_tip: '💡 Use o botão <strong>Editar</strong> em cada célula da matriz para ajustar manualmente o status ou preço após uma negociação por telefone ou e-mail.',
-    s7_body: 'Com a alocação finalizada, confirme cada pedido com o respectivo fornecedor. Use o modelo de mensagem padrão:',
-    s8_body: 'Após a confirmação de todos os fornecedores, organize os pagamentos de entrada de cada pedido. Marque o processo como <strong>Finalizado</strong> quando os pagamentos forem organizados.',
-    // Toasts
-    toast_supplier_required: 'Nome do fornecedor é obrigatório.',
-    toast_process_required: 'Nome do processo é obrigatório.',
-    toast_sku_required: 'SKU é obrigatório.',
-    toast_cat_required: 'Categoria Principal é obrigatória.',
-    toast_sku_exists: 'já existe.',
-    toast_password_required: 'Senha é obrigatória.',
-    toast_supplier_added: 'Fornecedor adicionado!', toast_supplier_updated: 'Fornecedor atualizado!',
-    toast_supplier_deleted: 'Fornecedor excluído.',
-    toast_process_created: 'Processo criado!', toast_process_updated: 'Processo atualizado!',
-    toast_product_added: 'Produto adicionado!', toast_product_updated: 'Produto atualizado!',
-    toast_quote_updated: 'Cotação atualizada!', toast_supplier_invited: 'Fornecedor convidado!',
-    toast_import_success: 'produtos importados!',
-    toast_nothing_import: 'Nada para importar.',
-    toast_import_error: 'Erro na importação: ',
-    toast_login_failed: 'Falha no login: ', toast_welcome: 'Bem-vindo!',
-    // Login screen
-    login_password_label: 'Senha de Acesso',
-    login_access_btn: 'Acessar Portal →',
-    login_admin_link: 'Login admin',
-    // Misc
-    loading: 'Carregando...', no_processes: 'Nenhum processo ainda.',
-    no_suppliers: 'Nenhum fornecedor ainda.', no_products: 'Nenhum produto encontrado.',
-    create_first: 'Criar Primeiro Processo',
-    change_status: 'Alterar Status',
-    invite_hint: 'Esta senha dá acesso ao fornecedor neste processo específico.',
-  },
-  en: {
-    nav_dashboard: 'Dashboard', nav_processes: 'Processes', nav_quotes: 'Quotes',
-    nav_products: 'Products', nav_suppliers: 'Suppliers', nav_steps: 'Steps',
-    btn_new_process: '+ New Process', btn_add_supplier: '+ Add Supplier',
-    btn_add_product: '+ Add Product', btn_import_csv: '↑ Import CSV',
-    dash_active_proc: 'Active Processes', dash_currently_open: 'Currently open',
-    dash_suppliers: 'Suppliers', dash_total_reg: 'Total registered',
-    dash_pending: 'Pending Quotes', dash_awaiting: 'Awaiting response',
-    dash_responded: 'Responded', dash_acc_counter: 'Accepted + counter',
-    dash_recent: 'Recent Processes',
-    th_process: 'Process', th_status: 'Status', th_created: 'Created', th_actions: '',
-    th_name: 'Name', th_contact: 'Contact', th_email: 'Email',
-    th_categories: 'Categories', th_added: 'Added',
-    th_sku: 'SKU', th_category: 'Category', th_sub_category: 'Sub Category',
-    th_process_col: 'Process', th_qty: 'Qty', th_plating: 'Plating',
-    th_samples: 'Suppliers w/ Sample', th_stat: 'Status',
-    filter_all: 'All', filter_disc: 'Discontinued',
-    search_placeholder: 'Search SKU or name…',
-    sup_registered: 'Registered Suppliers',
-    modal_add_supplier: 'Add Supplier', modal_edit_supplier: 'Edit Supplier',
-    modal_new_process: 'New Process', modal_edit_process: 'Edit Process',
-    modal_add_product: 'Add Product', modal_edit_product: 'Edit Product',
-    modal_import_csv: 'Import Products via CSV',
-    modal_edit_quote: 'Edit Quote', modal_invite_supplier: 'Invite Supplier',
-    modal_admin_login: 'Admin Login',
-    f_supplier_name: 'Supplier Name *', f_contact: 'Contact Name',
-    f_email: 'Email', f_categories_supplied: 'Categories Supplied',
-    f_process_name: 'Process Name *', f_description: 'Description',
-    f_status: 'Status',
-    f_sku: 'SKU *', f_product_name: 'Product Name', f_main_cat: 'Main Category *',
-    f_sub_cat: 'Sub Category', f_qty: 'Quantity', f_ref_price: 'Ref. Price (USD)',
-    f_tool_type: 'Tool Type', f_discontinued: 'Discontinued?',
-    f_image_url: 'Image URL', f_notes: 'Internal Notes',
-    f_access_password: 'Access Password *', f_supplier: 'Supplier',
-    f_eq_status: 'Status', f_unit_price: 'Unit Price (USD)', f_lead_time: 'Lead Time (days)',
-    f_notes_obs: 'Notes',
-    btn_cancel: 'Cancel', btn_save: 'Save', btn_save_supplier: 'Save Supplier',
-    btn_save_process: 'Save Process', btn_save_product: 'Save Product',
-    btn_save_quote: 'Save Quote', btn_invite: 'Invite Supplier',
-    btn_login: 'Login', btn_logout: 'Logout', btn_delete: 'Delete', btn_edit: 'Edit',
-    btn_view: 'View →', btn_import: 'Import Products',
-    proc_add_product: '+ Add Product', proc_import_csv: '↑ Import CSV',
-    proc_invite_supplier: '+ Invite Supplier', proc_edit: 'Edit Process',
-    proc_products: 'Products', proc_invited_suppliers: 'Invited Suppliers',
-    proc_quote_matrix: 'Quote Matrix', proc_no_products: 'No products yet.',
-    proc_no_suppliers: 'No suppliers invited.', proc_matrix_empty: 'Add products and invite suppliers to see the matrix.',
-    th_proc_sku: 'SKU', th_proc_name: 'Name', th_proc_cat: 'Category',
-    th_proc_subcat: 'Sub Cat.', th_proc_qty: 'Qty', th_proc_plating: 'Plating',
-    th_proc_sample: 'Sample', th_proc_status: 'Status',
-    th_sup_supplier: 'Supplier', th_sup_pass: 'Password', th_sup_active: 'Active',
-    opt_no_tool: 'No tool', opt_no: 'No', opt_yes_disc: 'Yes — Out of line',
-    opt_select: '— Select —', opt_select_cat: '— Select category —',
-    csv_hint: 'CSV must have these columns (header row required):',
-    csv_drop: 'Drop CSV here or click to browse',
-    csv_ready: 'rows ready to import',
-    csv_dupes: 'duplicate SKUs skipped',
-    steps_intro: 'This guide walks you through the full quoting and ordering flow — from initial demand through payment organization.',
-    s1_title: 'Define the Demand', s2_title: 'Create a Process',
-    s3_title: 'Add Products to the Process', s4_title: 'Invite Suppliers',
-    s5_title: 'Suppliers Respond', s6_title: 'Consolidate & Allocate',
-    s7_title: 'Confirm Orders with Suppliers', s8_title: 'Organize Payments',
-    s1_body: 'Before anything, map out the products needed for the cycle. Go to <strong>Products</strong> and ensure all items are registered in the catalog with SKU, Main Category and Sub Category. You can import in bulk via CSV.',
-    s2_body: 'Go to <strong>Processes → New Process</strong>. A process represents one quoting round (e.g. "Summer 2025"). Give it a clear name and set status to <em>Open</em>.',
-    s3_body: 'Inside the process, click <strong>+ Add Product</strong> or <strong>↑ Import CSV</strong> to add the items for this round. At this stage, fill in process-specific details: quantity, plating, tool type, and whether you have a sample.',
-    s3_tip: '⚠️ Before confirming quantities, cross-check plating differences — a price significantly lower than normal may indicate a different bath (e.g. 1mic vs 3mic). Also confirm which suppliers hold samples of each product.',
-    s4_body: 'Click <strong>+ Invite Supplier</strong> inside the process. Choose the supplier and set a unique access password for this process. The supplier will use this password to access the portal.',
-    s4_body2: 'Share the portal link and password with each supplier. The portal URL is the same as this app's URL.',
-    s5_body: 'Each supplier logs into the portal with their password and sees only their assigned products. They can <strong>Accept</strong>, <strong>Reject</strong>, or submit a <strong>Counter-Proposal</strong> with their price, lead time, and notes.',
-    s6_body: 'Go to <strong>Quotes</strong> and open the process. The Quote Matrix shows all supplier responses side by side per product. Identify the best prices and allocate quantities accordingly.',
-    s6_tip: '💡 Use the <strong>Edit</strong> button on each quote cell to manually adjust status or price if needed after a phone/email negotiation.',
-    s7_body: 'Once allocation is final, confirm each order with the respective supplier. Use the standard message template:',
-    s8_body: 'After all suppliers confirm, organize the deposit payments for each order. Mark the process as <strong>Finalized</strong> once payments are arranged.',
-    toast_supplier_required: 'Supplier name is required.',
-    toast_process_required: 'Process name is required.',
-    toast_sku_required: 'SKU is required.',
-    toast_cat_required: 'Main Category is required.',
-    toast_sku_exists: 'already exists.',
-    toast_password_required: 'Password is required.',
-    toast_supplier_added: 'Supplier added!', toast_supplier_updated: 'Supplier updated!',
-    toast_supplier_deleted: 'Supplier deleted.',
-    toast_process_created: 'Process created!', toast_process_updated: 'Process updated!',
-    toast_product_added: 'Product added!', toast_product_updated: 'Product updated!',
-    toast_quote_updated: 'Quote updated!', toast_supplier_invited: 'Supplier invited!',
-    toast_import_success: 'products imported!',
-    toast_nothing_import: 'Nothing to import.',
-    toast_import_error: 'Import error: ',
-    toast_login_failed: 'Login failed: ', toast_welcome: 'Welcome!',
-    login_password_label: 'Access Password',
-    login_access_btn: 'Access Portal →',
-    login_admin_link: 'Admin login',
-    loading: 'Loading...', no_processes: 'No processes yet.',
-    no_suppliers: 'No suppliers yet.', no_products: 'No products found.',
-    create_first: 'Create First Process',
-    change_status: 'Change Status',
-    invite_hint: 'This password gives the supplier access to this specific process.',
-  }
-};
-
-function t(key) { return (T[lang] && T[lang][key]) || (T['en'][key]) || key; }
-
-function setLang(l) {
-  lang = l;
-  localStorage.setItem('sg_lang', l);
-  applyLang();
-}
-
-function applyLang() {
-  const l = T[lang];
-  // Lang buttons
-  document.getElementById('lang-pt').className = lang==='pt' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
-  document.getElementById('lang-en').className = lang==='en' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
-  document.getElementById('logout-btn').textContent = l.btn_logout;
-  // Nav
-  const navMap = {dashboard:'nav_dashboard',processes:'nav_processes',quotes:'nav_quotes',products:'nav_products',suppliers:'nav_suppliers',steps:'nav_steps'};
-  Object.entries(navMap).forEach(([id,key]) => {
-    const el = document.getElementById('nav-'+id);
-    if (el) el.childNodes[el.childNodes.length-1].textContent = '
-        '+l[key]+'
-      ';
-  });
-  // Dashboard cards
-  const cards = [
-    ['card-label',0,l.dash_active_proc],['card-sub',0,l.dash_currently_open],
-    ['card-label',1,l.dash_suppliers],['card-sub',1,l.dash_total_reg],
-    ['card-label',2,l.dash_pending],['card-sub',2,l.dash_awaiting],
-    ['card-label',3,l.dash_responded],['card-sub',3,l.dash_acc_counter],
-  ];
-  document.querySelectorAll('.card-label').forEach((el,i)=>{
-    const labels = [l.dash_active_proc,l.dash_suppliers,l.dash_pending,l.dash_responded];
-    if(labels[i]) el.textContent = labels[i];
-  });
-  document.querySelectorAll('.card-sub').forEach((el,i)=>{
-    const subs = [l.dash_currently_open,l.dash_total_reg,l.dash_awaiting,l.dash_acc_counter];
-    if(subs[i]) el.textContent = subs[i];
-  });
-  // Section title
-  const st = document.querySelector('#view-dashboard .section-title');
-  if(st) st.childNodes[0].textContent = l.dash_recent;
-  // Dashboard table headers
-  const dth = document.querySelectorAll('#view-dashboard th');
-  if(dth.length>=3){ dth[0].textContent=l.th_process; dth[1].textContent=l.th_status; dth[2].textContent=l.th_created; }
-  // Products filter buttons
-  const fb = document.querySelectorAll('.filter-btn');
-  if(fb[0]) fb[0].textContent = l.filter_all;
-  if(fb[4]) fb[4].textContent = l.filter_disc;
-  const si = document.getElementById('prod-search');
-  if(si) si.placeholder = l.search_placeholder;
-  // Products table headers
-  const pth = document.querySelectorAll('#view-products th');
-  const pHeaders = [l.th_sku,l.th_category,l.th_sub_category,l.th_process_col,l.th_qty,l.th_plating,l.th_samples,l.th_stat,''];
-  pth.forEach((el,i)=>{ if(pHeaders[i]!==undefined) el.textContent=pHeaders[i]; });
-  // Suppliers table
-  const sTitle = document.querySelector('#view-suppliers .table-title');
-  if(sTitle) sTitle.textContent = l.sup_registered;
-  const sth = document.querySelectorAll('#view-suppliers th');
-  [l.th_name,l.th_contact,l.th_email,l.th_categories,l.th_added,''].forEach((h,i)=>{ if(sth[i]) sth[i].textContent=h; });
-  // Modals
-  const modalLabels = {
-    'modal-supplier-title': lang==='pt'?(document.getElementById('s-id')?.value?l.modal_edit_supplier:l.modal_add_supplier):(document.getElementById('s-id')?.value?l.modal_edit_supplier:l.modal_add_supplier),
-  };
-  // Steps
-  const stepsIntro = document.querySelector('#view-steps > div > p');
-  if(stepsIntro) stepsIntro.textContent = l.steps_intro;
-  const stepTitles = document.querySelectorAll('.step-title');
-  const stepKeys = ['s1_title','s2_title','s3_title','s4_title','s5_title','s6_title','s7_title','s8_title'];
-  stepTitles.forEach((el,i)=>{ if(stepKeys[i]) el.textContent = l[stepKeys[i]]; });
-  const stepBodies = document.querySelectorAll('.step-body > p');
-  const bodyKeys = ['s1_body','s2_body','s3_body','s4_body','s4_body2','s5_body','s6_body','s7_body','s8_body'];
-  stepBodies.forEach((el,i)=>{ if(bodyKeys[i]) el.innerHTML = l[bodyKeys[i]]||el.innerHTML; });
-  const stepTips = document.querySelectorAll('.step-tip');
-  if(stepTips[0]) stepTips[0].textContent = l.s3_tip;
-  if(stepTips[1]) stepTips[1].innerHTML = l.s6_tip;
-}
-
 // ── Start ─────────────────────────────
 init();
 setLang(lang);
