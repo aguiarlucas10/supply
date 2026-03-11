@@ -279,7 +279,7 @@ tr:hover td{background:var(--surface2);}
           <input class="search-input" id="prod-search" placeholder="Search SKU or name…" oninput="renderProductsTable()"/>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Sub Category</th><th>Process</th><th>Qty</th><th>Plating</th><th>Suppliers w/ Sample</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Sub Category</th><th>Suppliers w/ Sample</th><th></th></tr></thead>
           <tbody id="products-master-table"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
         </table></div>
       </div>
@@ -1030,21 +1030,17 @@ function renderProductsTable() {
   if (search) rows = rows.filter(p=>(p.sku||'').toLowerCase().includes(search)||p.name.toLowerCase().includes(search));
   const tbody = document.getElementById('products-master-table');
   if (!tbody) return;
-  if (!rows.length) { tbody.innerHTML='<tr><td colspan="10" class="empty">No products found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No products found.</td></tr>'; return; }
   tbody.innerHTML = rows.map(p=>{
     const samplers = p.sampleSuppliers?.length
       ? p.sampleSuppliers.map(s=>`<span class="tag">${s}</span>`).join('') : '<span style="color:var(--muted)">—</span>';
     const discBadge = p.discontinued ? '<span class="badge badge-discontinued">Discontinued</span>' : '<span style="color:var(--muted);font-size:11px;">Active</span>';
     return `<tr>
       <td style="color:var(--muted)">${p.sku||'—'}</td>
-      <td>${p.name}</td>
+      <td>${p.name||'—'}</td>
       <td>${p.category?`<span class="tag">${p.category}</span>`:'—'}</td>
       <td style="color:var(--muted);font-size:11px;">${p.sub_category||'—'}</td>
-      <td style="color:var(--muted);font-size:11px;">${p.process?.name||'—'}</td>
-      <td>${p.quantity.toLocaleString()}</td>
-      <td style="color:var(--muted)">${p.plating||'—'}</td>
       <td>${samplers}</td>
-      <td>${discBadge}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openEditProduct('${p.id}')">Edit</button></td>
     </tr>`;
   }).join('');
