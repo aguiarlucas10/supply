@@ -161,6 +161,13 @@ tr:hover td{background:var(--surface2);}
 /* CSV drop zone */
 .dropzone{border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;}
 .dropzone:hover,.dropzone.dragover{border-color:#fff;color:#fff;}
+
+/* Product image */
+.prod-img-preview{width:100%;max-height:180px;object-fit:contain;border:1px solid var(--border);border-radius:var(--radius);margin-top:8px;background:var(--surface2);}
+.img-upload-area{border:1px dashed var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;font-size:11px;color:var(--muted);}
+.img-upload-area:hover{border-color:#fff;color:#fff;}
+.img-tab-btn{padding:5px 12px;font-size:10px;letter-spacing:.08em;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;text-transform:uppercase;}
+.img-tab-btn.active{background:#fff;color:#000;border-color:#fff;}
 .csv-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;font-size:11px;}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -510,7 +517,34 @@ tr:hover td{background:var(--surface2);}
           <select id="prod-tool"><option value="">No tool</option><option value="black_tool">Black Tool</option><option value="blue_tool">Blue Tool</option></select>
         </div>
       </div>
-      <div class="field"><label>Image URL</label><input id="prod-img" placeholder="https://…"/></div>
+      <div class="field">
+        <label>Imagem do Produto</label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button class="img-tab-btn active" id="img-tab-upload" onclick="switchImgTab('upload')">Upload</button>
+          <button class="img-tab-btn" id="img-tab-url" onclick="switchImgTab('url')">URL</button>
+        </div>
+        <!-- Upload tab -->
+        <div id="img-panel-upload">
+          <div class="img-upload-area" onclick="document.getElementById('prod-img-file').click()">
+            📎 Clique para selecionar imagem (jpg, png, webp)
+            <input type="file" id="prod-img-file" accept="image/*" style="display:none;" onchange="handleProductImageSelect(this)"/>
+          </div>
+          <div id="prod-img-upload-preview" style="display:none;margin-top:8px;position:relative;">
+            <img id="prod-img-upload-thumb" class="prod-img-preview"/>
+            <button onclick="clearProductImage()" style="position:absolute;top:6px;right:6px;background:#000;border:1px solid var(--border);color:#fff;padding:2px 7px;font-size:10px;cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <!-- URL tab -->
+        <div id="img-panel-url" style="display:none;">
+          <input id="prod-img" placeholder="https://…" oninput="previewUrlImage(this.value)" style="width:100%;"/>
+          <div id="prod-img-url-preview" style="display:none;margin-top:8px;position:relative;">
+            <img id="prod-img-url-thumb" class="prod-img-preview"/>
+            <button onclick="clearUrlImage()" style="position:absolute;top:6px;right:6px;background:#000;border:1px solid var(--border);color:#fff;padding:2px 7px;font-size:10px;cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <!-- Hidden: final image_url to save -->
+        <input type="hidden" id="prod-img-final"/>
+      </div>
       <div class="field"><label>Internal Notes</label><textarea id="prod-notes" placeholder="Notes for internal use…" style="min-height:50px;"></textarea></div>
     </div>
     <div class="modal-foot">
@@ -907,6 +941,7 @@ async function loadSupplierPortal() {
   container.innerHTML = products.map(p => {
     const q = qMap[p.id]; const status = q ? q.status : 'pending';
     return `<div class="pqc" id="pqc-${p.id}">
+      ${p.image_url ? `<div style="width:100%;max-height:220px;overflow:hidden;border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;background:var(--surface2);display:flex;align-items:center;justify-content:center;"><img src="${p.image_url}" style="max-width:100%;max-height:220px;object-fit:contain;" onerror="this.parentElement.style.display='none'"/></div>` : ''}
       <div class="pqc-head">
         <div class="pqc-info"><h3>${p.sku ? `[${p.sku}] ` : ''}${p.name}</h3><p>${p.description||''}</p></div>
         <span class="badge badge-${status}">${status}</span>
@@ -1068,12 +1103,15 @@ function renderProductsTable() {
   if (search) rows = rows.filter(p=>(p.sku||'').toLowerCase().includes(search)||p.name.toLowerCase().includes(search));
   const tbody = document.getElementById('products-master-table');
   if (!tbody) return;
-  if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No products found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="7" class="empty">No products found.</td></tr>'; return; }
   tbody.innerHTML = rows.map(p=>{
     const samplers = p.sampleSuppliers?.length
       ? p.sampleSuppliers.map(s=>`<span class="tag">${s}</span>`).join('') : '<span style="color:var(--muted)">—</span>';
-    const discBadge = p.discontinued ? '<span class="badge badge-discontinued">Discontinued</span>' : '<span style="color:var(--muted);font-size:11px;">Active</span>';
+    const thumb = p.image_url
+      ? `<img src="${p.image_url}" style="width:36px;height:36px;object-fit:cover;border-radius:2px;border:1px solid var(--border);display:block;" onerror="this.style.display='none'">`
+      : `<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:2px;background:var(--surface2);"></div>`;
     return `<tr>
+      <td style="padding:4px 8px;width:44px;">${thumb}</td>
       <td style="color:var(--muted)">${p.sku||'—'}</td>
       <td>${p.name||'—'}</td>
       <td>${p.category?`<span class="tag">${p.category}</span>`:'—'}</td>
@@ -1241,14 +1279,88 @@ async function addCatalogProductToProcess(productId) {
   toast('Produto adicionado ao processo!','success');
 }
 
+// ── Product Image Helpers ──────────────────────────────────────────────────
+let _pendingImageFile = null;
+
+function switchImgTab(tab) {
+  document.getElementById('img-tab-upload').classList.toggle('active', tab==='upload');
+  document.getElementById('img-tab-url').classList.toggle('active', tab==='url');
+  document.getElementById('img-panel-upload').style.display = tab==='upload' ? '' : 'none';
+  document.getElementById('img-panel-url').style.display   = tab==='url'    ? '' : 'none';
+}
+
+function handleProductImageSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _pendingImageFile = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('prod-img-upload-thumb').src = url;
+  document.getElementById('prod-img-upload-preview').style.display = '';
+  document.getElementById('prod-img-final').value = ''; // will be set after upload
+}
+
+function clearProductImage() {
+  _pendingImageFile = null;
+  document.getElementById('prod-img-file').value = '';
+  document.getElementById('prod-img-upload-preview').style.display = 'none';
+  document.getElementById('prod-img-final').value = '';
+}
+
+function previewUrlImage(url) {
+  const thumb = document.getElementById('prod-img-url-thumb');
+  const wrap  = document.getElementById('prod-img-url-preview');
+  if (url && url.startsWith('http')) {
+    thumb.src = url; wrap.style.display = '';
+    document.getElementById('prod-img-final').value = url;
+  } else {
+    wrap.style.display = 'none';
+    document.getElementById('prod-img-final').value = '';
+  }
+}
+
+function clearUrlImage() {
+  document.getElementById('prod-img').value = '';
+  document.getElementById('prod-img-url-preview').style.display = 'none';
+  document.getElementById('prod-img-final').value = '';
+}
+
+function resetImageField(existingUrl) {
+  // Reset state
+  _pendingImageFile = null;
+  document.getElementById('prod-img-file').value = '';
+  document.getElementById('prod-img-upload-preview').style.display = 'none';
+  document.getElementById('prod-img-url-preview').style.display = 'none';
+  document.getElementById('prod-img-final').value = existingUrl || '';
+  if (existingUrl) {
+    // Show in URL tab
+    switchImgTab('url');
+    document.getElementById('prod-img').value = existingUrl;
+    document.getElementById('prod-img-url-thumb').src = existingUrl;
+    document.getElementById('prod-img-url-preview').style.display = '';
+  } else {
+    switchImgTab('upload');
+    document.getElementById('prod-img').value = '';
+  }
+}
+
+async function uploadPendingImage(sku) {
+  if (!_pendingImageFile) return null;
+  const ext  = _pendingImageFile.name.split('.').pop();
+  const path = `${sku || Date.now()}_${Date.now()}.${ext}`;
+  const { data, error } = await db.storage.from('product-images').upload(path, _pendingImageFile, { upsert: true });
+  if (error) { toast('Erro no upload da imagem: ' + error.message, 'error'); return null; }
+  return `${SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
+}
+
 function openAddProductModal(processId) {
   activeProcessId = processId || null;
   document.getElementById('modal-product-title').textContent = 'ADD PRODUCT';
-  ['prod-id','prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-img','prod-notes'].forEach(i=>document.getElementById(i).value='');
+  ['prod-id','prod-sku','prod-name','prod-desc','prod-qty','prod-refprice','prod-notes'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('prod-category').value = '';
   document.getElementById('prod-subcategory').value = '';
   document.getElementById('prod-tool').value = '';
   document.getElementById('prod-discontinued').value = 'false';
+  resetImageField(null);
   openModal('modal-product');
 }
 
@@ -1264,10 +1376,10 @@ async function openEditProduct(id) {
   document.getElementById('prod-refprice').value = p.reference_price||'';
   document.getElementById('prod-tool').value = p.tool_type||'';
   document.getElementById('prod-discontinued').value = p.discontinued?'true':'false';
-  document.getElementById('prod-img').value = p.image_url||'';
   document.getElementById('prod-notes').value = p.notes||'';
   document.getElementById('prod-category').value = p.category||'';
   document.getElementById('prod-subcategory').value = p.sub_category||'';
+  resetImageField(p.image_url||null);
   openModal('modal-product');
 }
 
@@ -1288,6 +1400,13 @@ async function saveProduct() {
     if (existing && existing.length > 0) { toast(`SKU "${newSku}" ${t('toast_sku_exists')}`, 'error'); return; }
   }
 
+  // Upload image if a file was selected
+  let imageUrl = document.getElementById('prod-img-final').value.trim() || null;
+  if (_pendingImageFile) {
+    const uploaded = await uploadPendingImage(newSku);
+    if (uploaded) imageUrl = uploaded;
+  }
+
   const payload = {
     process_id: activeProcessId || null,
     category: category,
@@ -1299,7 +1418,7 @@ async function saveProduct() {
     reference_price: document.getElementById('prod-refprice').value||null,
     tool_type: document.getElementById('prod-tool').value||null,
     discontinued: document.getElementById('prod-discontinued').value === 'true',
-    image_url: document.getElementById('prod-img').value.trim()||null,
+    image_url: imageUrl,
     notes: document.getElementById('prod-notes').value.trim()||null
   };
 
