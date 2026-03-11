@@ -1321,21 +1321,96 @@ function handleCsvFile(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
-    if (lines.length < 2) { toast('CSV must have a header and at least one row.','error'); return; }
-    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
-    const required = ['sku','category'];
-    const missing = required.filter(r=>!headers.includes(r));
-    if (missing.length) { toast('Missing columns: '+missing.join(', '),'error'); return; }
+    // Normalize: strip BOM, handle CRLF and LF
+    const raw = e.target.result.replace(/^\uFEFF/, '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    const lines = raw.split('\n').filter(l=>l.trim());
+    if (lines.length < 2) { toast('CSV precisa ter cabeçalho e pelo menos uma linha.','error'); return; }
+
+    // Parse header — normalize: lowercase + trim + replace spaces/underscores
+    const normalizeKey = k => k.trim().toLowerCase().replace(/[_ ]+/g,'_');
+    const headers = lines[0].split(',').map(normalizeKey);
+
+    // Build column aliases: accept SKU/sku, Category/category, Sub_Category/sub_category etc
+    const colAlias = {
+      'sku': 'sku',
+      'category': 'category',
+      'sub_category': 'sub_category',
+      'name': 'name',
+      'quantity': 'quantity',
+      'reference_price': 'reference_price',
+      'plating': 'plating',
+      'tool_type': 'tool_type',
+      'has_sample': 'has_sample',
+      'description': 'description',
+    };
+
+    // Map actual column indexes
+    const colIdx = {};
+    headers.forEach((h,i) => { if (colAlias[h]) colIdx[colAlias[h]] = i; });
+
+    if (colIdx['sku'] === undefined) { toast('Coluna SKU não encontrada.','error'); return; }
+    if (colIdx['category'] === undefined) { toast('Coluna Category não encontrada.','error'); return; }
+
+    // Category normalizer: RELÓGIOS->Relógios, SEMIJOIAS->Semijoias, ÓCULOS->Óculos, OUTROS->Outros
+    const catMap = {
+      'relógios': 'Relógios',
+      'relogios': 'Relógios',
+      'semijoias': 'Semijoias',
+      'óculos': 'Óculos',
+      'oculos': 'Óculos',
+      'outros': 'Outros',
+    };
+    const normalizeCategory = v => {
+      const k = (v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ó/g,'o');
+      // try exact match after stripping accents
+      const stripped = (v||'').trim().toLowerCase().replace(/[\u0300-\u036f]/g,'');
+      const lookup = stripped.replace(/ó/g,'o');
+      for (const [key, val] of Object.entries(catMap)) {
+        const strippedKey = key.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ó/g,'o');
+        if (strippedKey === lookup) return val;
+      }
+      // fallback: Title Case
+      return (v||'').trim().replace(/\w\S*/g, t=>t.charAt(0).toUpperCase()+t.slice(1).toLowerCase());
+    };
+
+    // CSV parser that handles quoted fields
+    const parseCSVLine = line => {
+      const result = [];
+      let cur = '', inQ = false;
+      for (let i=0; i<line.length; i++) {
+        const c = line[i];
+        if (c==='"') { inQ=!inQ; }
+        else if (c===',' && !inQ) { result.push(cur.trim()); cur=''; }
+        else { cur+=c; }
+      }
+      result.push(cur.trim());
+      return result;
+    };
+
+    const getCol = (vals, key) => {
+      const i = colIdx[key];
+      return i !== undefined ? (vals[i]||'').trim().replace(/^"+|"+$/g,'') : '';
+    };
+
     csvParsedRows = lines.slice(1).map(line => {
-      const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-      const row = {};
-      headers.forEach((h,i) => row[h] = vals[i]||'');
-      return row;
+      const vals = parseCSVLine(line);
+      return {
+        sku:             getCol(vals,'sku'),
+        name:            getCol(vals,'name'),
+        category:        normalizeCategory(getCol(vals,'category')),
+        sub_category:    getCol(vals,'sub_category'),
+        quantity:        getCol(vals,'quantity'),
+        reference_price: getCol(vals,'reference_price'),
+        plating:         getCol(vals,'plating'),
+        tool_type:       getCol(vals,'tool_type'),
+        has_sample:      getCol(vals,'has_sample'),
+        description:     getCol(vals,'description'),
+      };
     }).filter(r=>r.sku);
+
     renderCsvPreview();
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
 }
 
 async function renderCsvPreview() {
