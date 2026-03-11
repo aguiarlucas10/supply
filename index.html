@@ -1454,7 +1454,7 @@ async function importCsv() {
   const toInsert = validRows.map(r => ({
     process_id: activeProcessId || null,
     sku: r.sku || null,
-    name: r.name,
+    name: r.name || r.sku,          // fallback: use SKU as name if empty
     category: r.category || null,
     sub_category: r.sub_category || null,
     quantity: parseInt(r.quantity)||0,
@@ -1462,14 +1462,27 @@ async function importCsv() {
     plating: r.plating || null,
     tool_type: r.tool_type || null,
     has_sample: (r.has_sample||'').toLowerCase() === 'true',
-    discontinued: (r.discontinued||'').toLowerCase() === 'true',
+    discontinued: false,
     description: r.description || null,
+    notes: r.notes || null,
   }));
 
-  const { error } = await db.from('products').insert(toInsert);
-  if (error) { toast(t('toast_import_error')+error.message,'error'); return; }
+  // Insert in batches of 200 to avoid Supabase payload limits
+  const BATCH = 200;
+  let inserted = 0;
+  for (let i = 0; i < toInsert.length; i += BATCH) {
+    const batch = toInsert.slice(i, i + BATCH);
+    const { error } = await db.from('products').insert(batch);
+    if (error) {
+      toast('Erro ao importar: ' + error.message, 'error');
+      console.error('Import error:', error, 'Batch sample:', batch[0]);
+      return;
+    }
+    inserted += batch.length;
+  }
+
   closeModal('modal-csv');
-  toast(`${toInsert.length} ${t('toast_import_success')}`, 'success');
+  toast(`${inserted} produtos importados com sucesso!`, 'success');
   if (activeProcessId) openProcess(activeProcessId);
   else loadProductsMaster();
 }
