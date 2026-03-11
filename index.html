@@ -1182,11 +1182,13 @@ async function saveProcess() {
 // ── Product CRUD ──────────────────────
 async function openCatalogPicker(processId) {
   activeProcessId = processId;
-  // Load catalog products (not already in this process)
-  const { data: all } = await db.from('products').select('*').order('sku');
-  const { data: inProc } = await db.from('products').select('id').eq('process_id', processId);
-  const inProcIds = new Set((inProc||[]).map(p=>p.id));
-  window._catalogAll = (all||[]).filter(p=>!inProcIds.has(p.id));
+  // Catalog = products with no process (global catalog)
+  const { data: catalog } = await db.from('products').select('*').is('process_id', null).order('sku');
+  // Exclude SKUs already added to this process
+  const { data: inProc } = await db.from('products').select('sku').eq('process_id', processId);
+  const inProcSkus = new Set((inProc||[]).map(p=>p.sku));
+  window._catalogAll = (catalog||[]).filter(p => !inProcSkus.has(p.sku));
+  document.getElementById('catalog-search').value = '';
   filterCatalog();
   openModal('modal-add-to-process');
 }
