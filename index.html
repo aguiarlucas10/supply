@@ -1423,13 +1423,26 @@ async function renderCsvPreview() {
     const { data } = await db.from('products').select('sku').in('sku', skus);
     existingSkus = (data||[]).map(d=>d.sku);
   }
+  // Detect internal file duplicates (same SKU appearing more than once in file)
+  const skuCount = {};
+  csvParsedRows.forEach(r => { skuCount[r.sku] = (skuCount[r.sku]||0)+1; });
+  const internalDupes = new Set(Object.keys(skuCount).filter(s => skuCount[s] > 1));
+
   const dupes = csvParsedRows.filter(r=>r.sku && existingSkus.includes(r.sku));
-  const valid = csvParsedRows.filter(r=>!(r.sku && existingSkus.includes(r.sku)));
+  // valid = not already in DB, and deduplicated within file (keep first occurrence only)
+  const seenInFile = new Set();
+  const valid = csvParsedRows.filter(r => {
+    if (existingSkus.includes(r.sku)) return false;
+    if (seenInFile.has(r.sku)) return false;
+    seenInFile.add(r.sku);
+    return true;
+  });
   const missingCat = csvParsedRows.filter(r=>!r.category);
   document.getElementById('csv-summary').innerHTML =
     `<span style="color:var(--success);">${valid.length} ${t('csv_ready')}</span>` +
-    (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} ${t('csv_dupes')}</span>` : '') +
-    (missingCat && missingCat.length ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${missingCat.length} sem categoria (serão importados sem)</span>` : '');
+    (dupes.length ? ` &nbsp;·&nbsp; <span style="color:var(--danger);">${dupes.length} já existem no banco</span>` : '') +
+    (internalDupes.size ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${internalDupes.size} SKUs repetidos no arquivo (será importado só o primeiro)</span>` : '') +
+    (missingCat.length ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${missingCat.length} sem categoria</span>` : '');
   document.getElementById('csv-preview').innerHTML =
     `<table style="width:100%;border-collapse:collapse;">
       <thead><tr>${['SKU','Nome','Categoria','Sub Cat.','Qtd','Preço','Status'].map(h=>`<th style="padding:5px 8px;text-align:left;font-size:9px;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
@@ -1462,7 +1475,15 @@ async function importCsv() {
   const validRows = csvParsedRows._valid || [];
   if (!validRows.length) { toast(t('toast_nothing_import'),'error'); return; }
 
-  const toInsert = validRows.map(r => ({
+  // Deduplicate within the file itself (keep first occurrence)
+  const seenSkus = new Set();
+  const dedupedRows = validRows.filter(r => {
+    if (seenSkus.has(r.sku)) return false;
+    seenSkus.add(r.sku);
+    return true;
+  });
+
+  const toInsert = dedupedRows.map(r => ({
     process_id: activeProcessId || null,
     sku: r.sku || null,
     name: r.name || r.sku,          // fallback: use SKU as name if empty
