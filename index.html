@@ -507,8 +507,7 @@ tr:hover td{background:var(--surface2);}
   <div class="modal modal-wide">
     <div class="modal-head"><h2>Import Products via CSV</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-csv')">✕</button></div>
     <div class="modal-body">
-      <p style="font-size:11px;color:var(--muted);line-height:1.7;">CSV must have these columns (header row required):<br>
-      <code style="color:#fff;font-size:11px;">sku, name, category, quantity, reference_price, plating, tool_type, has_sample, description</code></p>
+      <p style="font-size:11px;color:var(--muted);line-height:1.7;">Colunas obrigatórias: <code style="color:#fff;font-size:11px;">sku, category</code><br>Opcionais: <code style="color:#555;font-size:11px;">name, sub_category, quantity, reference_price, plating, tool_type, has_sample, description</code></p>
       <div class="dropzone" id="csv-dropzone" onclick="document.getElementById('csv-file-input').click()">
         Drop CSV here or click to browse
         <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="handleCsvFile(this.files[0])"/>
@@ -1240,7 +1239,7 @@ function handleCsvFile(file) {
     const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
     if (lines.length < 2) { toast('CSV must have a header and at least one row.','error'); return; }
     const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
-    const required = ['sku','name','quantity'];
+    const required = ['sku','category'];
     const missing = required.filter(r=>!headers.includes(r));
     if (missing.length) { toast('Missing columns: '+missing.join(', '),'error'); return; }
     csvParsedRows = lines.slice(1).map(line => {
@@ -1248,7 +1247,7 @@ function handleCsvFile(file) {
       const row = {};
       headers.forEach((h,i) => row[h] = vals[i]||'');
       return row;
-    }).filter(r=>r.name);
+    }).filter(r=>r.sku);
     renderCsvPreview();
   };
   reader.readAsText(file);
