@@ -270,7 +270,6 @@ tr:hover td{background:var(--surface2);}
         <div class="table-wrap">
           <div class="table-header">
             <div class="table-title">Registered Suppliers</div>
-            <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-supplier')">+ Add Supplier</button>
           </div>
           <table>
             <thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Categories</th><th>Added</th><th></th></tr></thead>
@@ -916,6 +915,36 @@ async function saveProduct() {
 }
 
 // ── CSV Import ────────────────────────
+async function openCsvModalFromProducts() {
+  // Let user pick a process first
+  const { data: procs } = await db.from('processes').select('*').eq('status','open').order('created_at',{ascending:false});
+  if (!procs || !procs.length) { toast('No open processes found. Create a process first.','error'); return; }
+  if (procs.length === 1) { openCsvModal(procs[0].id); return; }
+  // More than one — show a quick picker via a temporary select in a toast-like prompt
+  const procId = await pickProcess(procs);
+  if (procId) openCsvModal(procId);
+}
+
+async function pickProcess(procs) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:200;';
+    overlay.innerHTML = `
+      <div style="background:#0a0a0a;border:1px solid #222;border-radius:2px;padding:28px;width:360px;">
+        <div style="font-size:13px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#fff;margin-bottom:16px;">Select Process</div>
+        <select id="_proc-picker" style="width:100%;background:#111;border:1px solid #333;color:#fff;font-family:Questrial,sans-serif;font-size:12px;padding:8px 11px;border-radius:2px;outline:none;">
+          ${procs.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+        </select>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+          <button id="_proc-cancel" style="background:transparent;color:#555;border:1px solid #222;border-radius:2px;font-family:Questrial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;cursor:pointer;">Cancel</button>
+          <button id="_proc-confirm" style="background:#fff;color:#000;border:none;border-radius:2px;font-family:Questrial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;cursor:pointer;">Continue</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('_proc-confirm').onclick = () => { const v = document.getElementById('_proc-picker').value; document.body.removeChild(overlay); resolve(v); };
+    document.getElementById('_proc-cancel').onclick  = () => { document.body.removeChild(overlay); resolve(null); };
+  });
+}
 function openCsvModal(processId) {
   activeProcessId = processId;
   csvParsedRows = [];
@@ -1170,7 +1199,7 @@ function showView(v) {
   actions.innerHTML = '';
   if (v==='processes') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewProcess()">+ New Process</button>'; loadProcesses(); }
   if (v==='suppliers') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddSupplier()">+ Add Supplier</button>'; }
-  if (v==='products')  { actions.innerHTML=''; loadProductsMaster(); }
+  if (v==='products')  { actions.innerHTML='<button class="btn btn-ghost btn-sm" onclick="openCsvModalFromProducts()">↑ Import CSV</button>'; loadProductsMaster(); }
   if (v==='dashboard') loadDashboard();
 }
 
