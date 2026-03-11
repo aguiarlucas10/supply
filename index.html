@@ -1352,25 +1352,16 @@ function handleCsvFile(file) {
     if (colIdx['category'] === undefined) { toast('Coluna Category não encontrada.','error'); return; }
 
     // Category normalizer: RELÓGIOS->Relógios, SEMIJOIAS->Semijoias, ÓCULOS->Óculos, OUTROS->Outros
+    // Map category: match by uppercase stripped value
     const catMap = {
-      'relógios': 'Relógios',
-      'relogios': 'Relógios',
-      'semijoias': 'Semijoias',
-      'óculos': 'Óculos',
-      'oculos': 'Óculos',
-      'outros': 'Outros',
+      'RELÓGIOS': 'Relógios', 'RELOGIOS': 'Relógios',
+      'SEMIJOIAS': 'Semijoias',
+      'ÓCULOS': 'Óculos', 'OCULOS': 'Óculos',
+      'OUTROS': 'Outros',
     };
     const normalizeCategory = v => {
-      const k = (v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ó/g,'o');
-      // try exact match after stripping accents
-      const stripped = (v||'').trim().toLowerCase().replace(/[\u0300-\u036f]/g,'');
-      const lookup = stripped.replace(/ó/g,'o');
-      for (const [key, val] of Object.entries(catMap)) {
-        const strippedKey = key.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ó/g,'o');
-        if (strippedKey === lookup) return val;
-      }
-      // fallback: Title Case
-      return (v||'').trim().replace(/\w\S*/g, t=>t.charAt(0).toUpperCase()+t.slice(1).toLowerCase());
+      const upper = (v||'').trim().toUpperCase();
+      return catMap[upper] || (v||'').trim();
     };
 
     // CSV parser that handles quoted fields
