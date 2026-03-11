@@ -557,11 +557,22 @@ tr:hover td{background:var(--surface2);}
   <div class="modal">
     <div class="modal-head"><h2>Invite Supplier</h2><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-invite-supplier')">✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Supplier</label><select id="invite-supplier-id"></select></div>
-      <div class="field"><label>Access Password *</label><input id="invite-password" placeholder="e.g. yuki2025"/></div>
-      <p style="font-size:11px;color:var(--muted);line-height:1.6;">This password gives the supplier access to this specific process.</p>
+      <div id="invite-form-body">
+        <div class="field"><label>Supplier</label><select id="invite-supplier-id"></select></div>
+        <div class="field"><label>Access Password *</label><input id="invite-password" placeholder="e.g. yuki2025"/></div>
+        <p style="font-size:11px;color:var(--muted);line-height:1.6;">This password gives the supplier access to this specific process.</p>
+      </div>
+      <div id="invite-success-body" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:18px;">✅</span>
+          <span style="font-size:12px;color:var(--success);">Supplier invited successfully!</span>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Share this message with the supplier:</p>
+        <div id="invite-message-box" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:12px;color:#ccc;line-height:1.8;white-space:pre-wrap;"></div>
+        <button class="btn btn-primary" onclick="copyInviteMessage()" style="margin-top:12px;width:100%;justify-content:center;">📋 Copy Message</button>
+      </div>
     </div>
-    <div class="modal-foot">
+    <div class="modal-foot" id="invite-modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-invite-supplier')">Cancel</button>
       <button class="btn btn-primary" onclick="inviteSupplier()">Invite Supplier</button>
     </div>
@@ -774,7 +785,7 @@ function applyLang() {
   if (searchInput) searchInput.placeholder = l.search_placeholder;
   // Products table headers
   const pTh = document.querySelectorAll('#view-products th');
-  const pHeaders = [l.th_sku,'',l.th_category,l.th_sub_category,l.th_process_col,l.th_qty,l.th_plating,l.th_samples,l.th_stat,''];
+  const pHeaders = [l.th_sku,'',l.th_category,l.th_sub_category,l.th_samples,''];
   pTh.forEach((el, i) => { if (pHeaders[i] !== undefined && pHeaders[i] !== '') el.textContent = pHeaders[i]; });
   // Suppliers section title & table headers
   const supTitle = document.querySelector('#view-suppliers .table-title');
@@ -1402,12 +1413,13 @@ async function openProcess(id) {
       <div>
         <div class="section-title">${t('proc_invited_suppliers')}</div>
         <div class="table-wrap"><table>
-          <thead><tr><th>${t('th_sup_supplier')}</th><th>${t('th_sup_pass')}</th><th>${t('th_sup_active')}</th></tr></thead>
+          <thead><tr><th>${t('th_sup_supplier')}</th><th>${t('th_sup_pass')}</th><th>${t('th_sup_active')}</th><th></th></tr></thead>
           <tbody>${!(psuppliers||[]).length ? `<tr><td colspan='3' class='empty'>${t('proc_no_suppliers')}</td></tr>` :
             (psuppliers||[]).map(ps=>`<tr>
               <td>${ps.supplier.name}</td>
               <td><code style="background:var(--surface2);padding:2px 6px;border-radius:2px;font-size:11px;">${ps.access_password}</code></td>
               <td>${ps.is_active?'<span class="badge badge-open">Yes</span>':'<span class="badge badge-closed">No</span>'}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="copyAccessMessage('${ps.supplier.name}','${ps.access_password}')">📋 Copy Message</button></td>
             </tr>`).join('')}
           </tbody>
         </table></div>
@@ -1462,9 +1474,51 @@ async function inviteSupplier() {
       { onConflict:'process_id,supplier_id,product_id', ignoreDuplicates:true }
     );
   }
-  closeModal('modal-invite-supplier');
+  // Show success state with copy message
+  const supplierName = document.getElementById('invite-supplier-id').selectedOptions[0]?.text || '';
+  const pass = password;
+  const msg = buildAccessMessage(supplierName, pass);
+  document.getElementById('invite-form-body').style.display = 'none';
+  document.getElementById('invite-success-body').style.display = 'block';
+  document.getElementById('invite-message-box').textContent = msg;
+  document.getElementById('invite-modal-foot').innerHTML = '<button class="btn btn-ghost" onclick="closeInviteModal()">Close</button>';
   openProcess(activeProcessId);
   toast(t('toast_supplier_invited'),'success');
+}
+
+function closeInviteModal() {
+  document.getElementById('invite-form-body').style.display = 'block';
+  document.getElementById('invite-success-body').style.display = 'none';
+  document.getElementById('invite-modal-foot').innerHTML = '<button class="btn btn-ghost" onclick="closeModal(\'modal-invite-supplier\')">Cancel</button><button class="btn btn-primary" onclick="inviteSupplier()">Invite Supplier</button>';
+  closeModal('modal-invite-supplier');
+}
+
+function buildAccessMessage(supplierName, password) {
+  const url = window.location.href.split('?')[0].split('#')[0];
+  const firstName = supplierName.split(' ')[0];
+  return `Hi ${firstName}!
+
+We would like to invite you to submit your quotes through our supplier portal.
+
+🔗 Access link: ${url}
+🔑 Password: ${password}
+
+Please log in and review all products listed for this round. You can accept, reject, or submit a counter-proposal for each item.
+
+If you have any questions, feel free to reach out.
+
+Thank you,
+Saint Germain`;
+}
+
+function copyAccessMessage(supplierName, password) {
+  const msg = buildAccessMessage(supplierName, password);
+  navigator.clipboard.writeText(msg).then(() => toast('Message copied!', 'success'));
+}
+
+function copyInviteMessage() {
+  const msg = document.getElementById('invite-message-box').textContent;
+  navigator.clipboard.writeText(msg).then(() => toast('Message copied!', 'success'));
 }
 
 // ── UI ────────────────────────────────
