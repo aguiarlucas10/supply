@@ -166,6 +166,12 @@ tr:hover td{background:var(--surface2);}
 .prod-img-preview{width:100%;max-height:180px;object-fit:contain;border:1px solid var(--border);border-radius:var(--radius);margin-top:8px;background:var(--surface2);}
 .img-upload-area{border:1px dashed var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;font-size:11px;color:var(--muted);}
 .img-upload-area:hover{border-color:#fff;color:#fff;}
+#photo-import-dropzone.dragover{border-color:#fff;color:#fff;}
+.photo-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:10px;}
+.photo-card img{width:100%;height:90px;object-fit:cover;display:block;}
+.photo-card-info{padding:6px 8px;line-height:1.5;}
+.photo-card-sku{font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.photo-card-status{font-size:9px;letter-spacing:.06em;}
 .img-tab-btn{padding:5px 12px;font-size:10px;letter-spacing:.08em;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;text-transform:uppercase;}
 .img-tab-btn.active{background:#fff;color:#000;border-color:#fff;}
 .csv-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;font-size:11px;}
@@ -550,6 +556,38 @@ tr:hover td{background:var(--surface2);}
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-product')">Cancel</button>
       <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Import Photos -->
+<div class="modal-overlay" id="modal-photo-import">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h2>Importar Fotos em Lote</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-photo-import')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--muted);line-height:1.9;margin-bottom:14px;">
+        Selecione múltiplas imagens nomeadas com o <strong style="color:#fff;">SKU do produto</strong>.<br>
+        Exemplo: <code style="color:#fff;">LRBG2228.jpg</code> · <code style="color:#fff;">VRBIG2228.png</code><br>
+        O sistema irá encontrar o produto pelo SKU e atualizar a foto automaticamente.
+      </p>
+      <div class="img-upload-area" id="photo-import-dropzone" onclick="document.getElementById('photo-import-input').click()" style="padding:24px;">
+        <div style="font-size:22px;margin-bottom:6px;">🖼</div>
+        <div>Arraste as imagens ou clique para selecionar</div>
+        <div style="font-size:10px;margin-top:4px;color:#444;">Múltiplos arquivos · jpg, png, webp</div>
+        <input type="file" id="photo-import-input" accept="image/*" multiple style="display:none;" onchange="handlePhotoImportSelect(this.files)"/>
+      </div>
+      <div id="photo-import-preview" style="display:none;margin-top:16px;">
+        <div id="photo-import-summary" style="font-size:11px;color:var(--muted);margin-bottom:10px;"></div>
+        <div id="photo-import-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;max-height:340px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-photo-import')">Cancelar</button>
+      <button class="btn btn-primary" id="photo-import-btn" onclick="runPhotoImport()" style="display:none;">Importar Fotos</button>
     </div>
   </div>
 </div>
@@ -1433,7 +1471,98 @@ async function saveProduct() {
 
 // ── CSV Import ────────────────────────
 async function openCsvModalFromProducts() {
-  openCsvModal(null); // null = global catalog, no process binding
+  openCsvModal(null);
+}
+
+// ── Photo Import ──────────────────────────────────────────────────────────
+let _photoImportFiles = [];
+
+function openPhotoImportModal() {
+  _photoImportFiles = [];
+  document.getElementById('photo-import-input').value = '';
+  document.getElementById('photo-import-preview').style.display = 'none';
+  document.getElementById('photo-import-btn').style.display = 'none';
+  openModal('modal-photo-import');
+  const dz = document.getElementById('photo-import-dropzone');
+  dz.ondragover  = e => { e.preventDefault(); dz.classList.add('dragover'); };
+  dz.ondragleave = () => dz.classList.remove('dragover');
+  dz.ondrop      = e => { e.preventDefault(); dz.classList.remove('dragover'); handlePhotoImportSelect(e.dataTransfer.files); };
+}
+
+async function handlePhotoImportSelect(files) {
+  if (!files || !files.length) return;
+  const toSku = name => name.replace(/\.[^.]+$/, '').trim().toUpperCase();
+  const skus = Array.from(files).map(f => toSku(f.name));
+  const { data: products } = await db.from('products').select('id, sku').in('sku', skus);
+  const skuToId = {};
+  (products || []).forEach(p => { skuToId[p.sku.toUpperCase()] = p.id; });
+  _photoImportFiles = Array.from(files).map(f => {
+    const sku = toSku(f.name);
+    const productId = skuToId[sku];
+    return { file: f, sku, productId, status: productId ? 'match' : 'nomatch' };
+  });
+  renderPhotoImportPreview();
+}
+
+function renderPhotoImportPreview() {
+  const matched   = _photoImportFiles.filter(f => f.status === 'match').length;
+  const unmatched = _photoImportFiles.filter(f => f.status === 'nomatch').length;
+  document.getElementById('photo-import-summary').innerHTML =
+    `<span style="color:var(--success);">${matched} foto${matched!==1?'s':''} com produto encontrado</span>` +
+    (unmatched ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${unmatched} sem correspondência (serão ignoradas)</span>` : '');
+  document.getElementById('photo-import-list').innerHTML = _photoImportFiles.map((f, i) => {
+    const previewUrl = URL.createObjectURL(f.file);
+    const statusColor = f.status === 'match' ? 'var(--success)' : 'var(--warning)';
+    const statusText  = f.status === 'match' ? 'Produto encontrado' : 'SKU nao encontrado';
+    return `<div class="photo-card" id="photo-card-${i}">
+      <img src="${previewUrl}"/>
+      <div class="photo-card-info">
+        <div class="photo-card-sku">${f.sku}</div>
+        <div class="photo-card-status" style="color:${statusColor};">${statusText}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('photo-import-preview').style.display = '';
+  document.getElementById('photo-import-btn').style.display = matched > 0 ? '' : 'none';
+}
+
+async function runPhotoImport() {
+  const btn = document.getElementById('photo-import-btn');
+  btn.disabled = true; btn.textContent = 'Importando…';
+  let done = 0, errors = 0;
+  const toUpload = _photoImportFiles.filter(f => f.status === 'match');
+  for (let i = 0; i < toUpload.length; i++) {
+    const f = toUpload[i];
+    const ext  = f.file.name.split('.').pop();
+    const path = `${f.sku}_${Date.now()}.${ext}`;
+    const { data: upData, error: upErr } = await db.storage
+      .from('product-images').upload(path, f.file, { upsert: true });
+    if (upErr) { errors++; _setPhotoCardStatus(f, 'error', 'Erro no upload'); continue; }
+    const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${upData.path}`;
+    // Update ALL records with this SKU (catalog + process copies)
+    const { error: dbErr } = await db.from('products').update({ image_url: url }).eq('sku', f.sku);
+    if (dbErr) { errors++; _setPhotoCardStatus(f, 'error', 'Erro ao salvar'); continue; }
+    done++;
+    _setPhotoCardStatus(f, 'done', 'Importado');
+  }
+  btn.disabled = false; btn.textContent = 'Importar Fotos';
+  if (errors === 0) {
+    toast(`${done} foto${done!==1?'s':''} importada${done!==1?'s':''} com sucesso!`, 'success');
+    closeModal('modal-photo-import');
+    loadProductsMaster();
+  } else {
+    toast(`${done} importadas, ${errors} com erro`, 'warning');
+  }
+}
+
+function _setPhotoCardStatus(f, status, label) {
+  const i = _photoImportFiles.indexOf(f);
+  const card = document.getElementById(`photo-card-${i}`);
+  if (!card) return;
+  f.status = status;
+  const color = status === 'done' ? 'var(--success)' : 'var(--danger)';
+  card.querySelector('.photo-card-status').style.color = color;
+  card.querySelector('.photo-card-status').textContent = label;
 }
 
 
@@ -1872,7 +2001,7 @@ function showView(v) {
   actions.innerHTML = '';
   if (v==='processes') { actions.innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewProcess()">${t('btn_new_process')}</button>`; loadProcesses(); }
   if (v==='suppliers') { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddSupplier()">+ Add Supplier</button>'; }
-  if (v==='products')  { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddProductModal(null)">+ Add Product</button> <button class="btn btn-ghost btn-sm" onclick="openCsvModalFromProducts()">↑ Import CSV</button>'; loadProductsMaster(); }
+  if (v==='products')  { actions.innerHTML='<button class="btn btn-primary btn-sm" onclick="openAddProductModal(null)">+ Add Product</button> <button class="btn btn-ghost btn-sm" onclick="openCsvModalFromProducts()">↑ Import CSV</button> <button class="btn btn-ghost btn-sm" onclick="openPhotoImportModal()">🖼 Importar Fotos</button>'; loadProductsMaster(); }
   if (v==='steps')     { actions.innerHTML=''; }
   if (v==='dashboard') loadDashboard();
 }
