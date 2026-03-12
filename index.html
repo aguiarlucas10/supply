@@ -1416,8 +1416,8 @@ function resetImageField(existingUrl) {
 
 async function uploadPendingImage(sku) {
   if (!_pendingImageFile) return null;
-  const resized = await resizeImageFile(_pendingImageFile, 400, 0.85);
-  const path = `${sku || Date.now()}_${Date.now()}.jpg`;
+  const resized = await resizeImageFile(_pendingImageFile, 600, 0.88);
+  const path = `products/${sku || Date.now()}.jpg`;
   const { data, error } = await db.storage.from('product-images').upload(path, resized, { upsert: true, contentType: 'image/jpeg' });
   if (error) { toast('Erro no upload da imagem: ' + error.message, 'error'); return null; }
   return `${SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
@@ -1609,32 +1609,59 @@ async function handlePhotoImportSelect(files) {
   if (!files || !files.length) return;
   const toSku = name => name.replace(/\.[^.]+$/, '').trim().toUpperCase();
   const skus = Array.from(files).map(f => toSku(f.name));
-  const { data: products } = await db.from('products').select('id, sku').in('sku', skus);
-  const skuToId = {};
-  (products || []).forEach(p => { skuToId[p.sku.toUpperCase()] = p.id; });
+  // Fetch id, sku AND image_url to detect existing photos
+  const { data: products } = await db.from('products').select('id, sku, image_url').is('process_id', null).in('sku', skus);
+  const skuToProduct = {};
+  (products || []).forEach(p => { skuToProduct[p.sku.toUpperCase()] = p; });
   _photoImportFiles = Array.from(files).map(f => {
     const sku = toSku(f.name);
-    const productId = skuToId[sku];
-    return { file: f, sku, productId, status: productId ? 'match' : 'nomatch' };
+    const prod = skuToProduct[sku];
+    if (!prod) return { file: f, sku, productId: null, hasExisting: false, status: 'nomatch' };
+    return { file: f, sku, productId: prod.id, hasExisting: !!prod.image_url, status: 'match' };
   });
   renderPhotoImportPreview();
 }
 
 function renderPhotoImportPreview() {
-  const matched   = _photoImportFiles.filter(f => f.status === 'match').length;
-  const unmatched = _photoImportFiles.filter(f => f.status === 'nomatch').length;
+  const matched      = _photoImportFiles.filter(f => f.status === 'match').length;
+  const unmatched    = _photoImportFiles.filter(f => f.status === 'nomatch').length;
+  const withExisting = _photoImportFiles.filter(f => f.status === 'match' && f.hasExisting).length;
   document.getElementById('photo-import-summary').innerHTML =
     `<span style="color:var(--success);">${matched} foto${matched!==1?'s':''} com produto encontrado</span>` +
-    (unmatched ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${unmatched} sem correspondência (serão ignoradas)</span>` : '');
+    (withExisting ? ` &nbsp;·&nbsp; <span style="color:var(--warning);">${withExisting} ja possuem foto</span>` : '') +
+    (unmatched ? ` &nbsp;·&nbsp; <span style="color:var(--muted);">${unmatched} sem correspondencia (ignoradas)</span>` : '');
   document.getElementById('photo-import-list').innerHTML = _photoImportFiles.map((f, i) => {
     const previewUrl = URL.createObjectURL(f.file);
-    const statusColor = f.status === 'match' ? 'var(--success)' : 'var(--warning)';
-    const statusText  = f.status === 'match' ? 'Produto encontrado' : 'SKU nao encontrado';
+    if (f.status === 'nomatch') {
+      return `<div class="photo-card" id="photo-card-${i}" style="opacity:.35;">
+        <img src="${previewUrl}"/>
+        <div class="photo-card-info">
+          <div class="photo-card-sku">${f.sku}</div>
+          <div class="photo-card-status" style="color:var(--muted);">SKU nao encontrado</div>
+        </div>
+      </div>`;
+    }
+    if (f.hasExisting) {
+      return `<div class="photo-card" id="photo-card-${i}">
+        <div style="position:relative;">
+          <img src="${previewUrl}"/>
+          <div style="position:absolute;top:4px;right:4px;background:var(--warning);color:#1a1400;font-size:8px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:.06em;">JA TEM FOTO</div>
+        </div>
+        <div class="photo-card-info">
+          <div class="photo-card-sku">${f.sku}</div>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:9px;color:var(--muted);margin-top:4px;">
+            <input type="checkbox" id="replace-cb-${i}" checked onchange="_toggleReplace(${i},this.checked)" style="cursor:pointer;"/>
+            Substituir foto existente
+          </label>
+          <div class="photo-card-status" id="photo-card-status-${i}" style="color:var(--warning);margin-top:3px;">Ira substituir</div>
+        </div>
+      </div>`;
+    }
     return `<div class="photo-card" id="photo-card-${i}">
       <img src="${previewUrl}"/>
       <div class="photo-card-info">
         <div class="photo-card-sku">${f.sku}</div>
-        <div class="photo-card-status" style="color:${statusColor};">${statusText}</div>
+        <div class="photo-card-status" id="photo-card-status-${i}" style="color:var(--success);">Importar</div>
       </div>
     </div>`;
   }).join('');
@@ -1642,16 +1669,32 @@ function renderPhotoImportPreview() {
   document.getElementById('photo-import-btn').style.display = matched > 0 ? '' : 'none';
 }
 
+function _toggleReplace(i, checked) {
+  const f = _photoImportFiles[i];
+  f.skipReplace = !checked;
+  const statusEl = document.getElementById('photo-card-status-' + i);
+  const card     = document.getElementById('photo-card-' + i);
+  if (checked) {
+    statusEl.textContent = 'Ira substituir';
+    statusEl.style.color = 'var(--warning)';
+    card.style.opacity   = '';
+  } else {
+    statusEl.textContent = 'Ignorar';
+    statusEl.style.color = 'var(--muted)';
+    card.style.opacity   = '.4';
+  }
+}
+
 async function runPhotoImport() {
   const btn = document.getElementById('photo-import-btn');
   btn.disabled = true; btn.textContent = 'Importando…';
   let done = 0, errors = 0;
-  const toUpload = _photoImportFiles.filter(f => f.status === 'match');
+  const toUpload = _photoImportFiles.filter(f => f.status === 'match' && !f.skipReplace);
   for (let i = 0; i < toUpload.length; i++) {
     const f = toUpload[i];
     const ext  = f.file.name.split('.').pop();
-    const path = `${f.sku}_${Date.now()}.${ext}`;
-    const resized = await resizeImageFile(f.file, 400, 0.85);
+    const path = `products/${f.sku}.jpg`;
+    const resized = await resizeImageFile(f.file, 600, 0.88);
     const { data: upData, error: upErr } = await db.storage
       .from('product-images').upload(path, resized, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) { errors++; _setPhotoCardStatus(f, 'error', 'Erro no upload'); continue; }
