@@ -1458,6 +1458,8 @@ function PageAdmin({ user, onLogout }) {
   const [grupoLinkAdmin, setGrupoLinkAdmin] = React.useState("");
   const [salvandoGrupo, setSalvandoGrupo] = React.useState(false);
   const [msgGrupo, setMsgGrupo] = React.useState({text:"",ok:false});
+  const [syncAdmin, setSyncAdmin] = React.useState(false);
+  const [syncLog, setSyncLog] = React.useState({total:0,novas:0,erros:0,atual:""});
 
   React.useEffect(()=>{load();},[]);
 
@@ -1484,6 +1486,49 @@ function PageAdmin({ user, onLogout }) {
     if(ba?.valor) setBannerAltura(Number(ba.valor));
     const {data:gl} = await supabase.from("config").select("valor").eq("chave","grupo_vip_link").maybeSingle();
     if(gl?.valor) setGrupoLinkAdmin(gl.valor);
+  }
+
+  async function sincronizarTodos() {
+    if(syncAdmin==="running") return;
+    setSyncAdmin("running");
+    setSyncLog({total:0,novas:0,erros:0,atual:"Carregando embaixadores..."});
+    try {
+      const {data:todos} = await supabase.from("embaixadores").select("id,cupom,nome").eq("status","ativo");
+      const lista = (todos||[]).filter(e=>e.cupom);
+      setSyncLog(l=>({...l,total:lista.length,atual:"Iniciando..."}));
+      let novas=0, erros=0;
+      for(let i=0;i<lista.length;i++){
+        const emb = lista[i];
+        setSyncLog(l=>({...l,atual:`(${i+1}/${lista.length}) ${emb.nome||emb.cupom}`}));
+        try {
+          const pedidos = await NS.ordersByCoupon(emb.cupom);
+          for(const p of (pedidos||[])){
+            const usouCupom = (p.coupon||[]).some(function(cp){
+              return String(cp.code||"").toUpperCase()===String(emb.cupom).toUpperCase();
+            });
+            if(!usouCupom) continue;
+            if(p.payment_status==="voided"||p.payment_status==="refunded") continue;
+            const {data:ex} = await supabase.from("comissoes").select("id").eq("pedido_id",String(p.id)).maybeSingle();
+            if(ex) continue;
+            const val = parseFloat(p.total);
+            const status = p.payment_status==="paid" ? (diasPassados(p.created_at,CONFIG.JANELA_DEVOLUCAO)?"confirmada":"pendente") : "pendente";
+            const {error} = await supabase.from("comissoes").insert({
+              embaixador_id:emb.id, pedido_id:String(p.id),
+              valor_pedido:val, valor_comissao:val*CONFIG.COMISSAO_PCT,
+              status, payment_status:p.payment_status, criado_em:p.created_at
+            });
+            if(!error) novas++;
+          }
+        } catch(e){ erros++; }
+        setSyncLog(l=>({...l,novas,erros}));
+        // pequena pausa para não estourar rate limit da Nuvemshop
+        await new Promise(r=>setTimeout(r,300));
+      }
+      setSyncLog(l=>({...l,atual:"Concluido!"}));
+    } catch(e){ setSyncLog(l=>({...l,atual:"Erro: "+String(e)})); }
+    setSyncAdmin("done");
+    if(dashModo==="preset") loadDashboard(dashPeriodo,null,null);
+    else if(dashCustomDe&&dashCustomAte) loadDashboard(null,dashCustomDe,dashCustomAte);
   }
 
   async function aprovar(id){await supabase.from("resgates").update({status:"aprovado"}).eq("id",id);await load();}
@@ -1831,6 +1876,33 @@ function PageAdmin({ user, onLogout }) {
                 </span>
               )}
               {!dash && <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:8}}>Carregando...</span>}
+            </div>
+
+            {/* Sincronizacao admin */}
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:32,padding:"16px 20px",border:`1px solid ${T.g200}`,background:T.g100}}>
+              <div style={{flex:1}}>
+                <p style={{fontFamily:T.sans,fontSize:11,fontWeight:500,color:T.black,marginBottom:2}}>Sincronizar todas as vendas</p>
+                <p style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>
+                  {syncAdmin==="running"
+                    ? `${syncLog.atual} — ${syncLog.novas} novas comissoes (${syncLog.erros} erros)`
+                    : syncAdmin==="done"
+                    ? `Concluido — ${syncLog.novas} novas comissoes registradas em ${syncLog.total} embaixadores`
+                    : "Percorre todos os embaixadores ativos e importa pedidos da Nuvemshop que ainda nao foram registrados."}
+                </p>
+              </div>
+              <button onClick={sincronizarTodos} disabled={syncAdmin==="running"}
+                style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",
+                  padding:"10px 24px",border:`1px solid ${T.black}`,
+                  background:syncAdmin==="running"?T.g200:T.black,
+                  color:syncAdmin==="running"?T.g400:T.white,
+                  cursor:syncAdmin==="running"?"not-allowed":"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                {syncAdmin==="running"
+                  ? <span style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{width:10,height:10,border:"1.5px solid "+T.g400,borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>
+                      Sincronizando...
+                    </span>
+                  : "Sincronizar agora"}
+              </button>
             </div>
 
             {dash && (()=>{
