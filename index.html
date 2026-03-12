@@ -1876,33 +1876,24 @@ function PageAdmin({ user, onLogout }) {
                 </span>
               )}
               {!dash && <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:8}}>Carregando...</span>}
-            </div>
-
-            {/* Sincronizacao admin */}
-            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:32,padding:"16px 20px",border:`1px solid ${T.g200}`,background:T.g100}}>
-              <div style={{flex:1}}>
-                <p style={{fontFamily:T.sans,fontSize:11,fontWeight:500,color:T.black,marginBottom:2}}>Sincronizar todas as vendas</p>
-                <p style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>
+              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:12}}>
+                {syncAdmin==="running" && (
+                  <span style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>{syncLog.atual}</span>
+                )}
+                {syncAdmin==="done" && (
+                  <span style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>{syncLog.novas} novas</span>
+                )}
+                <button onClick={sincronizarTodos} disabled={syncAdmin==="running"}
+                  style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",
+                    padding:"8px 20px",border:`1px solid ${syncAdmin==="running"?T.g200:T.black}`,
+                    background:"transparent",
+                    color:syncAdmin==="running"?T.g400:T.black,
+                    cursor:syncAdmin==="running"?"not-allowed":"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:8}}>
                   {syncAdmin==="running"
-                    ? `${syncLog.atual} — ${syncLog.novas} novas comissoes (${syncLog.erros} erros)`
-                    : syncAdmin==="done"
-                    ? `Concluido — ${syncLog.novas} novas comissoes registradas em ${syncLog.total} embaixadores`
-                    : "Percorre todos os embaixadores ativos e importa pedidos da Nuvemshop que ainda nao foram registrados."}
-                </p>
+                    ? <><span style={{width:10,height:10,border:"1.5px solid "+T.g400,borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/> Sincronizando...</>
+                    : "Sincronizar"}
+                </button>
               </div>
-              <button onClick={sincronizarTodos} disabled={syncAdmin==="running"}
-                style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",
-                  padding:"10px 24px",border:`1px solid ${T.black}`,
-                  background:syncAdmin==="running"?T.g200:T.black,
-                  color:syncAdmin==="running"?T.g400:T.white,
-                  cursor:syncAdmin==="running"?"not-allowed":"pointer",whiteSpace:"nowrap",flexShrink:0}}>
-                {syncAdmin==="running"
-                  ? <span style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{width:10,height:10,border:"1.5px solid "+T.g400,borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>
-                      Sincronizando...
-                    </span>
-                  : "Sincronizar agora"}
-              </button>
             </div>
 
             {dash && (()=>{
