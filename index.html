@@ -167,6 +167,9 @@ tr:hover td{background:var(--surface2);}
 .img-upload-area{border:1px dashed var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;font-size:11px;color:var(--muted);}
 .img-upload-area:hover{border-color:#fff;color:#fff;}
 #photo-import-dropzone.dragover{border-color:#fff;color:#fff;}
+.pd-field{display:flex;flex-direction:column;gap:3px;}
+.pd-label{font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;}
+.pd-value{font-size:13px;color:#fff;}
 .photo-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:10px;}
 .photo-card img{width:100%;height:90px;object-fit:cover;display:block;}
 .photo-card-info{padding:6px 8px;line-height:1.5;}
@@ -560,6 +563,35 @@ tr:hover td{background:var(--surface2);}
   </div>
 </div>
 
+
+<!-- Product Detail Popup -->
+<div class="modal-overlay" id="modal-product-detail">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h2 id="pd-title" style="letter-spacing:.15em;"></h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" id="pd-edit-btn" onclick="editFromDetail()">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-product-detail')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="pd-image-wrap" style="display:none;width:100%;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;max-height:280px;overflow:hidden;">
+        <img id="pd-image" style="max-width:100%;max-height:280px;object-fit:contain;display:block;"/>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;" id="pd-fields"></div>
+        <div id="pd-desc-wrap" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Descrição</div>
+          <div id="pd-desc" style="font-size:12px;color:#ccc;line-height:1.7;"></div>
+        </div>
+        <div id="pd-notes-wrap" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Notas Internas</div>
+          <div id="pd-notes" style="font-size:12px;color:#ccc;line-height:1.7;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Import Photos -->
 <div class="modal-overlay" id="modal-photo-import">
@@ -1148,14 +1180,15 @@ function renderProductsTable() {
     const thumb = p.image_url
       ? `<img src="${p.image_url}" style="width:36px;height:36px;object-fit:cover;border-radius:2px;border:1px solid var(--border);display:block;" onerror="this.style.display='none'">`
       : `<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:2px;background:var(--surface2);"></div>`;
-    return `<tr>
-      <td style="padding:4px 8px;width:44px;">${thumb}</td>
+    const rowClick = `onclick="openProductDetail(${JSON.stringify(p).replace(/"/g,'&quot;')})"`;
+    return `<tr style="cursor:pointer;" ${rowClick}>
+      <td style="padding:4px 8px;width:44px;" onclick="event.stopPropagation()">${thumb}</td>
       <td style="color:var(--muted)">${p.sku||'—'}</td>
       <td>${p.name||'—'}</td>
       <td>${p.category?`<span class="tag">${p.category}</span>`:'—'}</td>
       <td style="color:var(--muted);font-size:11px;">${p.sub_category||'—'}</td>
       <td>${samplers}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openEditProduct('${p.id}')">Edit</button></td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="openEditProduct('${p.id}')">Edit</button></td>
     </tr>`;
   }).join('');
 }
@@ -1383,9 +1416,9 @@ function resetImageField(existingUrl) {
 
 async function uploadPendingImage(sku) {
   if (!_pendingImageFile) return null;
-  const ext  = _pendingImageFile.name.split('.').pop();
-  const path = `${sku || Date.now()}_${Date.now()}.${ext}`;
-  const { data, error } = await db.storage.from('product-images').upload(path, _pendingImageFile, { upsert: true });
+  const resized = await resizeImageFile(_pendingImageFile, 400, 0.85);
+  const path = `${sku || Date.now()}_${Date.now()}.jpg`;
+  const { data, error } = await db.storage.from('product-images').upload(path, resized, { upsert: true, contentType: 'image/jpeg' });
   if (error) { toast('Erro no upload da imagem: ' + error.message, 'error'); return null; }
   return `${SUPABASE_URL}/storage/v1/object/public/product-images/${data.path}`;
 }
@@ -1474,6 +1507,89 @@ async function openCsvModalFromProducts() {
   openCsvModal(null);
 }
 
+
+// ── Product Detail Popup ──────────────────────────────────────────────────
+let _detailProductId = null;
+
+function openProductDetail(p) {
+  _detailProductId = p.id;
+  // Title
+  document.getElementById('pd-title').textContent = p.sku || p.name || '—';
+
+  // Image
+  const imgWrap = document.getElementById('pd-image-wrap');
+  const img     = document.getElementById('pd-image');
+  if (p.image_url) {
+    img.src = p.image_url;
+    imgWrap.style.display = 'flex';
+  } else {
+    imgWrap.style.display = 'none';
+  }
+
+  // Fields grid
+  const fields = [
+    ['SKU',          p.sku],
+    ['Nome',         p.name],
+    ['Categoria',    p.category],
+    ['Sub Categoria',p.sub_category],
+    ['Quantidade',   p.quantity ? p.quantity.toLocaleString() + ' pcs' : null],
+    ['Preço Ref.',   p.reference_price ? 'USD ' + parseFloat(p.reference_price).toFixed(2) : null],
+    ['Ferramenta',   p.tool_type ? p.tool_type.replace(/_/g,' ') : null],
+    ['Banho',        p.plating],
+    ['Amostra',      p.has_sample != null ? (p.has_sample ? '✓ Disponível' : '✗ Nenhuma') : null],
+    ['Status',       p.discontinued ? 'Fora de linha' : 'Ativo'],
+  ].filter(([,v]) => v != null && v !== '');
+
+  document.getElementById('pd-fields').innerHTML = fields.map(([label, val]) =>
+    `<div class="pd-field"><span class="pd-label">${label}</span><span class="pd-value">${val}</span></div>`
+  ).join('');
+
+  // Description
+  if (p.description) {
+    document.getElementById('pd-desc').textContent = p.description;
+    document.getElementById('pd-desc-wrap').style.display = '';
+  } else {
+    document.getElementById('pd-desc-wrap').style.display = 'none';
+  }
+
+  // Notes
+  if (p.notes) {
+    document.getElementById('pd-notes').textContent = p.notes;
+    document.getElementById('pd-notes-wrap').style.display = '';
+  } else {
+    document.getElementById('pd-notes-wrap').style.display = 'none';
+  }
+
+  openModal('modal-product-detail');
+}
+
+function editFromDetail() {
+  closeModal('modal-product-detail');
+  if (_detailProductId) openEditProduct(_detailProductId);
+}
+
+
+// ── Image Resize (canvas) ─────────────────────────────────────────────────
+function resizeImageFile(file, maxSize = 400, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+      else        { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+    img.src = url;
+  });
+}
+
 // ── Photo Import ──────────────────────────────────────────────────────────
 let _photoImportFiles = [];
 
@@ -1535,8 +1651,9 @@ async function runPhotoImport() {
     const f = toUpload[i];
     const ext  = f.file.name.split('.').pop();
     const path = `${f.sku}_${Date.now()}.${ext}`;
+    const resized = await resizeImageFile(f.file, 400, 0.85);
     const { data: upData, error: upErr } = await db.storage
-      .from('product-images').upload(path, f.file, { upsert: true });
+      .from('product-images').upload(path, resized, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) { errors++; _setPhotoCardStatus(f, 'error', 'Erro no upload'); continue; }
     const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${upData.path}`;
     // Update ALL records with this SKU (catalog + process copies)
@@ -1904,7 +2021,8 @@ function buildQuoteMatrix(products, suppliers, quoteMap, allQuotes) {
       const editBtn = `<br><button class="btn btn-ghost btn-sm" style="margin-top:4px;font-size:9px;" onclick="openEditQuote('${q.id}')">Edit</button>`;
       return `<td><span class="badge badge-${q.status}">${q.status}${priceStr}</span>${editBtn}</td>`;
     }).join('');
-    return `<tr><td><b>${p.sku?`[${p.sku}] `:''}${p.name}</b><br><small style="color:var(--muted);">${p.quantity.toLocaleString()} pcs</small></td>${cells}</tr>`;
+    const pJson = JSON.stringify({id:p.id,sku:p.sku,name:p.name,category:p.category,sub_category:p.sub_category,quantity:p.quantity,reference_price:p.reference_price,tool_type:p.tool_type,plating:p.plating,has_sample:p.has_sample,discontinued:p.discontinued,description:p.description,notes:p.notes,image_url:p.image_url}).replace(/"/g,'&quot;');
+    return `<tr><td style="cursor:pointer;" onclick="openProductDetail(JSON.parse(this.dataset.p))" data-p="${pJson}"><b>${p.sku?`[${p.sku}] `:''}${p.name}</b><br><small style="color:var(--muted);">${p.quantity.toLocaleString()} pcs</small></td>${cells}</tr>`;
   }).join('');
   return `<div class="table-wrap"><table>
     <thead><tr><th>Product</th>${headers}</tr></thead>
