@@ -1835,6 +1835,31 @@ function PageAdmin({ user, onLogout }) {
 
         <StatGrid items={[[embs.filter(e=>e.status==="ativo").length,"Ativos"],[ress.length,"Resgates pendentes"],[fila.length,"Fila de contato"]]} cols={3}/>
 
+        {/* Sincronizar vendas — fora do Tabs para garantir visibilidade */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",marginBottom:32,border:"1px solid #000",background:"#000"}}>
+          <div>
+            <p style={{fontFamily:"Questrial,sans-serif",fontSize:11,fontWeight:500,color:"#fff",marginBottom:2}}>Sincronizar vendas</p>
+            <p style={{fontFamily:"Questrial,sans-serif",fontSize:11,color:"rgba(255,255,255,0.5)",margin:0}}>
+              {syncAdmin==="running"
+                ? syncLog.atual+" — "+syncLog.novas+" novas ("+syncLog.erros+" erros)"
+                : syncAdmin==="done"
+                ? "✓ Concluido: "+syncLog.novas+" novas comissoes em "+syncLog.total+" embaixadores"
+                : "Importa pedidos pagos da Nuvemshop para todos os embaixadores ativos"}
+            </p>
+          </div>
+          <button onClick={sincronizarTodos} disabled={syncAdmin==="running"}
+            style={{fontFamily:"Questrial,sans-serif",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",
+              padding:"10px 28px",border:"1px solid rgba(255,255,255,0.4)",
+              background:"transparent",color:"#fff",
+              cursor:syncAdmin==="running"?"not-allowed":"pointer",
+              whiteSpace:"nowrap",flexShrink:0,display:"flex",alignItems:"center",gap:8,
+              opacity:syncAdmin==="running"?0.5:1}}>
+            {syncAdmin==="running"
+              ? <><span style={{width:10,height:10,border:"1.5px solid #fff",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/> Sincronizando...</>
+              : "Sincronizar agora"}
+          </button>
+        </div>
+
         <Tabs tabs={["dashboard","embaixadores","resgates","financeiro","fila","ranking","banner","whatsapp","chat","importar","estreia"]} labels={{dashboard:"Dashboard",embaixadores:"Embaixadores ("+embs.length+")",resgates:"Resgates"+(ress.length?" ("+ress.length+")":""),financeiro:"Financeiro",fila:"Fila"+(fila.length?" ("+fila.length+")":""),ranking:"Ranking",banner:"Banner",whatsapp:"WhatsApp",chat:"Chat"+(unread?" ("+unread+")":""),importar:"Importar",estreia:"Pre-estreia"}} active={tab} onChange={setTab}>
 
         {/* TAB EMBAIXADORES */}
@@ -1842,60 +1867,40 @@ function PageAdmin({ user, onLogout }) {
         {tab==="dashboard" && (
           <div className="fade-in">
 
-            {/* Periodo selector + Sincronizar */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:8,flexWrap:"wrap"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                {[{label:"7D",dias:7},{label:"30D",dias:30}].map(({label,dias})=>{
-                  const ativo = dashModo==="preset" && dashPeriodo===dias;
-                  return (
-                    <button key={label} onClick={()=>{ setDashModo("preset"); setDashPeriodo(dias); }}
-                      style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",padding:"8px 18px",
-                        border:`1px solid ${ativo?T.black:T.g200}`,background:ativo?T.black:"transparent",
-                        color:ativo?T.white:T.g400,cursor:"pointer",transition:"all 0.15s"}}>
-                      {label}
-                    </button>
-                  );
-                })}
-                <button onClick={()=>setDashModo(dashModo==="custom"?"preset":"custom")}
-                  style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",padding:"8px 18px",
-                    border:`1px solid ${dashModo==="custom"?T.black:T.g200}`,background:dashModo==="custom"?T.black:"transparent",
-                    color:dashModo==="custom"?T.white:T.g400,cursor:"pointer",transition:"all 0.15s"}}>
-                  Personalizado
-                </button>
-                {dashModo==="custom" && (
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4}}>
-                    <input type="date" value={dashCustomDe} onChange={e=>setDashCustomDe(e.target.value)}
-                      style={{fontFamily:T.sans,fontSize:11,padding:"7px 10px",border:`1px solid ${T.g200}`,outline:"none",color:T.black,background:T.white,cursor:"pointer"}}/>
-                    <span style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>ate</span>
-                    <input type="date" value={dashCustomAte} onChange={e=>setDashCustomAte(e.target.value)}
-                      style={{fontFamily:T.sans,fontSize:11,padding:"7px 10px",border:`1px solid ${T.g200}`,outline:"none",color:T.black,background:T.white,cursor:"pointer"}}/>
-                  </div>
-                )}
-                {dashModo==="preset" && (
-                  <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:4}}>
-                    Ultimos {dashPeriodo} dias
-                  </span>
-                )}
-                {!dash && <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:8}}>Carregando...</span>}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-                {syncAdmin==="running" && (
-                  <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{syncLog.atual}</span>
-                )}
-                {syncAdmin==="done" && (
-                  <span style={{fontFamily:T.sans,fontSize:11,color:"#2a7a2a"}}>✓ {syncLog.novas} novas comissoes</span>
-                )}
-                <button onClick={sincronizarTodos} disabled={syncAdmin==="running"}
-                  style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",
-                    padding:"8px 22px",border:`1px solid ${syncAdmin==="running"?T.g200:T.black}`,
-                    background:syncAdmin==="running"?T.g100:T.black,
-                    color:syncAdmin==="running"?T.g400:T.white,
-                    cursor:syncAdmin==="running"?"not-allowed":"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:8}}>
-                  {syncAdmin==="running"
-                    ? <><span style={{width:10,height:10,border:"1.5px solid "+T.g400,borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/> Sincronizando...</>
-                    : "Sincronizar vendas"}
-                </button>
-              </div>
+            {/* Periodo selector */}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:32,flexWrap:"wrap"}}>
+              {[{label:"7D",dias:7},{label:"30D",dias:30}].map(({label,dias})=>{
+                const ativo = dashModo==="preset" && dashPeriodo===dias;
+                return (
+                  <button key={label} onClick={()=>{ setDashModo("preset"); setDashPeriodo(dias); }}
+                    style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",padding:"8px 18px",
+                      border:`1px solid ${ativo?T.black:T.g200}`,background:ativo?T.black:"transparent",
+                      color:ativo?T.white:T.g400,cursor:"pointer",transition:"all 0.15s"}}>
+                    {label}
+                  </button>
+                );
+              })}
+              <button onClick={()=>setDashModo(dashModo==="custom"?"preset":"custom")}
+                style={{fontFamily:T.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",padding:"8px 18px",
+                  border:`1px solid ${dashModo==="custom"?T.black:T.g200}`,background:dashModo==="custom"?T.black:"transparent",
+                  color:dashModo==="custom"?T.white:T.g400,cursor:"pointer",transition:"all 0.15s"}}>
+                Personalizado
+              </button>
+              {dashModo==="custom" && (
+                <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4}}>
+                  <input type="date" value={dashCustomDe} onChange={e=>setDashCustomDe(e.target.value)}
+                    style={{fontFamily:T.sans,fontSize:11,padding:"7px 10px",border:`1px solid ${T.g200}`,outline:"none",color:T.black,background:T.white,cursor:"pointer"}}/>
+                  <span style={{fontFamily:T.sans,fontSize:11,color:T.g400}}>ate</span>
+                  <input type="date" value={dashCustomAte} onChange={e=>setDashCustomAte(e.target.value)}
+                    style={{fontFamily:T.sans,fontSize:11,padding:"7px 10px",border:`1px solid ${T.g200}`,outline:"none",color:T.black,background:T.white,cursor:"pointer"}}/>
+                </div>
+              )}
+              {dashModo==="preset" && (
+                <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:4}}>
+                  Ultimos {dashPeriodo} dias
+                </span>
+              )}
+              {!dash && <span style={{fontFamily:T.sans,fontSize:11,color:T.g400,marginLeft:8}}>Carregando...</span>}
             </div>
 
             {dash && (()=>{
